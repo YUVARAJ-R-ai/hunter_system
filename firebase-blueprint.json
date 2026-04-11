@@ -1,0 +1,225 @@
+{
+  "entities": {
+    "HunterData": {
+      "title": "Hunter Profile",
+      "description": "Core profile data for the hunter, including stats and progress.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "username": { "type": "string" },
+        "level": { "type": "integer" },
+        "xp": { "type": "integer" },
+        "gold": { "type": "integer" },
+        "mana": { "type": "integer" },
+        "maxMana": { "type": "integer" },
+        "stats": { "$ref": "Stats" },
+        "dailyLog": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "date": { "type": "string" },
+              "questId": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["uid", "username", "level", "xp", "gold", "mana", "maxMana", "stats"]
+    },
+    "Stats": {
+      "title": "Hunter Stats",
+      "description": "The 6 core stats of the hunter.",
+      "type": "object",
+      "properties": {
+        "STR": { "type": "integer" },
+        "INT": { "type": "integer" },
+        "AGI": { "type": "integer" },
+        "VIT": { "type": "integer" },
+        "END": { "type": "integer" },
+        "SEN": { "type": "integer" }
+      },
+      "required": ["STR", "INT", "AGI", "VIT", "END", "SEN"]
+    },
+    "ListGroup": {
+      "title": "List Group",
+      "description": "A group of lists, mirroring MS To Do groups.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "order": { "type": "integer" }
+      },
+      "required": ["id", "name", "order"]
+    },
+    "List": {
+      "title": "Task List",
+      "description": "A list of tasks/quests.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "groupId": { "type": "string" },
+        "order": { "type": "integer" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "name", "order", "category"]
+    },
+    "Quest": {
+      "title": "Quest (Task)",
+      "description": "A single quest or task.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "difficulty": { "type": "string" },
+        "category": { "type": "string" },
+        "xpReward": { "type": "integer" },
+        "goldReward": { "type": "integer" },
+        "statBoost": {
+          "type": "object",
+          "properties": {
+            "stat": { "type": "string" },
+            "amount": { "type": "integer" }
+          }
+        },
+        "hasDeadline": { "type": "boolean" },
+        "deadline": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "failed": { "type": "boolean" },
+        "createdAt": { "type": "integer" },
+        "listId": { "type": "string" },
+        "isImportant": { "type": "boolean" }
+      },
+      "required": ["id", "title", "type", "difficulty", "category", "xpReward", "goldReward", "statBoost", "completed", "failed", "createdAt"]
+    },
+    "Habit": {
+      "title": "Habit",
+      "description": "A recurring habit.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "penaltyXP": { "type": "integer" },
+        "streak": { "type": "integer" },
+        "lastCompleted": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "penaltyXP", "streak"]
+    },
+    "Boss": {
+      "title": "Boss Raid",
+      "description": "A boss raid challenge.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "totalHP": { "type": "integer" },
+        "currentHP": { "type": "integer" },
+        "xpReward": { "type": "integer" },
+        "difficulty": { "type": "string" },
+        "defeated": { "type": "boolean" }
+      },
+      "required": ["id", "name", "category", "totalHP", "currentHP", "xpReward", "difficulty", "defeated"]
+    },
+    "Item": {
+      "title": "Item",
+      "description": "An item in the inventory.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "rarity": { "type": "string" },
+        "equipped": { "type": "boolean" },
+        "description": { "type": "string" }
+      },
+      "required": ["id", "name", "type", "rarity", "equipped", "description"]
+    },
+    "Skill": {
+      "title": "Skill",
+      "description": "A skill in the skill tree.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "mpCost": { "type": "integer" },
+        "requiredLevel": { "type": "integer" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "unlocked": { "type": "boolean" }
+      },
+      "required": ["id", "name", "type", "mpCost", "requiredLevel", "category", "description", "unlocked"]
+    },
+    "Achievement": {
+      "title": "Achievement",
+      "description": "An unlocked achievement.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "unlocked": { "type": "boolean" },
+        "unlockedAt": { "type": "integer" }
+      },
+      "required": ["id", "name", "description", "unlocked"]
+    },
+    "Reward": {
+      "title": "Reward",
+      "description": "A custom reward.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "cost": { "type": "integer" },
+        "description": { "type": "string" },
+        "purchased": { "type": "boolean" }
+      },
+      "required": ["id", "name", "cost", "description", "purchased"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "HunterData",
+      "description": "User profile and top-level data."
+    },
+    "/users/{userId}/listGroups/{groupId}": {
+      "schema": "ListGroup",
+      "description": "Groups of lists."
+    },
+    "/users/{userId}/lists/{listId}": {
+      "schema": "List",
+      "description": "Individual task lists."
+    },
+    "/users/{userId}/quests/{questId}": {
+      "schema": "Quest",
+      "description": "Tasks/Quests."
+    },
+    "/users/{userId}/habits/{habitId}": {
+      "schema": "Habit",
+      "description": "User habits."
+    },
+    "/users/{userId}/bosses/{bossId}": {
+      "schema": "Boss",
+      "description": "Boss raids."
+    },
+    "/users/{userId}/skills/{skillId}": {
+      "schema": "Skill",
+      "description": "Skill tree."
+    },
+    "/users/{userId}/inventory/{itemId}": {
+      "schema": "Item",
+      "description": "Inventory items."
+    },
+    "/users/{userId}/achievements/{achievementId}": {
+      "schema": "Achievement",
+      "description": "Unlocked achievements."
+    },
+    "/users/{userId}/rewards/{rewardId}": {
+      "schema": "Reward",
+      "description": "Custom rewards."
+    }
+  }
+}

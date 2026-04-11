@@ -1,0 +1,62 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@theme {
+  --color-background: #050a14;
+  --color-accent-blue: #1e90ff;
+  --color-accent-gold: #f0c040;
+  --color-accent-purple: #7b61ff;
+  --color-rank-e: #9ca3af;
+  --color-rank-d: #22c55e;
+  --color-rank-c: #3b82f6;
+  --color-rank-b: #a855f7;
+  --color-rank-a: #eab308;
+  --color-rank-s: #ef4444;
+
+  --font-orbitron: "Orbitron", sans-serif;
+  --font-mono: "Share Tech Mono", monospace;
+  --font-sans: "Inter", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-white font-sans selection:bg-accent-blue/30;
+    background-image: 
+      linear-gradient(to right, rgba(30, 144, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(30, 144, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-orbitron tracking-wider uppercase;
+  }
+
+  .stats-value {
+    @apply font-mono text-accent-blue;
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 15px rgba(30, 144, 255, 0.3);
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 15px rgba(240, 192, 64, 0.3);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 15px rgba(123, 97, 255, 0.3);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-accent-blue/20 rounded-full hover:bg-accent-blue/40 transition-colors;
+}
