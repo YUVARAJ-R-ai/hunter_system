@@ -11,7 +11,7 @@
     ],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
-    "isolatedModules": true,
+    "isolatedModules": true,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
     "moduleDetection": "force",
     "allowJs": true,
     "jsx": "react-jsx",
