@@ -54,14 +54,13 @@ router.post('/:id/purchase', async (req: AuthRequest, res: Response) => {
     const rewardResult = await query('SELECT * FROM rewards WHERE id=$1 AND user_id=$2', [req.params.id, req.userId]);
     if (rewardResult.rows.length === 0) return res.status(404).json({ error: 'Reward not found' });
     const reward = rewardResult.rows[0];
-    if (reward.purchased) return res.status(400).json({ error: 'Reward already purchased' });
-
     const userResult = await query('SELECT gold FROM users WHERE id=$1', [req.userId]);
     const user = userResult.rows[0];
     if (user.gold < reward.cost) return res.status(400).json({ error: `Not enough gold (need ${reward.cost}, have ${user.gold})` });
 
     await query('UPDATE users SET gold=gold-$1 WHERE id=$2', [reward.cost, req.userId]);
-    await query('UPDATE rewards SET purchased=true WHERE id=$1', [reward.id]);
+    // Allow repeat purchase: Do not set purchased=true
+    // await query('UPDATE rewards SET purchased=true WHERE id=$1', [reward.id]);
 
     res.json({ message: `Reward purchased: ${reward.name}`, goldSpent: reward.cost, remainingGold: user.gold - reward.cost });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to purchase reward' }); }

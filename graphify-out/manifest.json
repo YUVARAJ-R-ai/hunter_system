@@ -1,0 +1,502 @@
+{
+  "/mnt/drive1/projects/hunter-system/firebase-applet-config.json": {
+    "mtime": 1775629458.0,
+    "ast_hash": "0cef14b675e8ba0041c5528ceecf75b8",
+    "semantic_hash": "0cef14b675e8ba0041c5528ceecf75b8"
+  },
+  "/mnt/drive1/projects/hunter-system/firebase-blueprint.json": {
+    "mtime": 1775629458.0,
+    "ast_hash": "b72112ba302584dc5d639910b1547cdc",
+    "semantic_hash": "b72112ba302584dc5d639910b1547cdc"
+  },
+  "/mnt/drive1/projects/hunter-system/metadata.json": {
+    "mtime": 1775629458.0,
+    "ast_hash": "2357d73a01b4ce090856212dc9927e6f",
+    "semantic_hash": "2357d73a01b4ce090856212dc9927e6f"
+  },
+  "/mnt/drive1/projects/hunter-system/package.json": {
+    "mtime": 1776349381.0639486,
+    "ast_hash": "9e4a1dec59d4800c425cc746fb901a75",
+    "semantic_hash": "9e4a1dec59d4800c425cc746fb901a75"
+  },
+  "/mnt/drive1/projects/hunter-system/skills-lock.json": {
+    "mtime": 1776349221.1029556,
+    "ast_hash": "cf0480791978d1fd7583feb0df771a68",
+    "semantic_hash": "cf0480791978d1fd7583feb0df771a68"
+  },
+  "/mnt/drive1/projects/hunter-system/tsconfig.json": {
+    "mtime": 1775629458.0,
+    "ast_hash": "8827451c4e35790dd3f3538c265e7d15",
+    "semantic_hash": "8827451c4e35790dd3f3538c265e7d15"
+  },
+  "/mnt/drive1/projects/hunter-system/vite.config.ts": {
+    "mtime": 1775629458.0,
+    "ast_hash": "60785666fc59d0906be7385d87a7e2c1",
+    "semantic_hash": "60785666fc59d0906be7385d87a7e2c1"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/package.json": {
+    "mtime": 1775655634.636561,
+    "ast_hash": "a663ca1cc3daa304ae49a0509e9e5ce6",
+    "semantic_hash": "a663ca1cc3daa304ae49a0509e9e5ce6"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/tsconfig.json": {
+    "mtime": 1775655636.7875135,
+    "ast_hash": "4fe9aa9a43f80c2706f1ccbbe8d6d3fe",
+    "semantic_hash": "4fe9aa9a43f80c2706f1ccbbe8d6d3fe"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/sql/init.sql": {
+    "mtime": 1775654867.4857256,
+    "ast_hash": "ce6ef0816a4e7890451c023b3bdcd906",
+    "semantic_hash": "ce6ef0816a4e7890451c023b3bdcd906"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/index.ts": {
+    "mtime": 1775655761.2315729,
+    "ast_hash": "68d6fbc536642247405f0f9c3c561f9c",
+    "semantic_hash": "68d6fbc536642247405f0f9c3c561f9c"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/config/database.ts": {
+    "mtime": 1776353939.2747498,
+    "ast_hash": "8e2542760f741d195626c73b020a8654",
+    "semantic_hash": "8e2542760f741d195626c73b020a8654"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/middleware/auth.ts": {
+    "mtime": 1775655661.8733664,
+    "ast_hash": "a5d8094dec7845a347911e188bed28f2",
+    "semantic_hash": "a5d8094dec7845a347911e188bed28f2"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/routes/achievement.routes.ts": {
+    "mtime": 1775738510.0169058,
+    "ast_hash": "3a74aca53f0028441a2c98716f1b43e1",
+    "semantic_hash": "3a74aca53f0028441a2c98716f1b43e1"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/routes/auth.routes.ts": {
+    "mtime": 1775655791.992864,
+    "ast_hash": "8fde1d5b701bf0e89e5cb26297db2302",
+    "semantic_hash": "8fde1d5b701bf0e89e5cb26297db2302"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/routes/boss.routes.ts": {
+    "mtime": 1775725648.5541813,
+    "ast_hash": "6a1f4490af320ce157fd51aa2a9d7257",
+    "semantic_hash": "6a1f4490af320ce157fd51aa2a9d7257"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/routes/habit.routes.ts": {
+    "mtime": 1775730980.8103287,
+    "ast_hash": "6b0a7ea27aeefb5906e8c0ce19d708e4",
+    "semantic_hash": "6b0a7ea27aeefb5906e8c0ce19d708e4"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/routes/hunter.routes.ts": {
+    "mtime": 1775655809.416059,
+    "ast_hash": "23183f0d2477532760fb2ff1596b5bdf",
+    "semantic_hash": "23183f0d2477532760fb2ff1596b5bdf"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/routes/inventory.routes.ts": {
+    "mtime": 1775731058.7706118,
+    "ast_hash": "6304ecb6a67fcf337a07d4d7d257a320",
+    "semantic_hash": "6304ecb6a67fcf337a07d4d7d257a320"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/routes/list.routes.ts": {
+    "mtime": 1775738525.4648936,
+    "ast_hash": "f3b479e79203363ce6df248948f81bec",
+    "semantic_hash": "f3b479e79203363ce6df248948f81bec"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/routes/listGroup.routes.ts": {
+    "mtime": 1775738531.3085465,
+    "ast_hash": "4c6835d2359854eeb2b090c66be01f57",
+    "semantic_hash": "4c6835d2359854eeb2b090c66be01f57"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/routes/quest.routes.ts": {
+    "mtime": 1776779140.705517,
+    "ast_hash": "784eb82cd5cc46c8feb5f300cee6eda7",
+    "semantic_hash": "784eb82cd5cc46c8feb5f300cee6eda7"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/routes/reward.routes.ts": {
+    "mtime": 1776778753.026064,
+    "ast_hash": "7cdb04aff59d7e3474bdf3e06c96ef43",
+    "semantic_hash": "7cdb04aff59d7e3474bdf3e06c96ef43"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/routes/skill.routes.ts": {
+    "mtime": 1775731020.8863964,
+    "ast_hash": "849f7bd8994afda9475256c919ec2acd",
+    "semantic_hash": "849f7bd8994afda9475256c919ec2acd"
+  },
+  "/mnt/drive1/projects/hunter-system/backend/src/utils/gameLogic.ts": {
+    "mtime": 1775655664.902388,
+    "ast_hash": "c44843ff36f0724e51acb65cefdd705f",
+    "semantic_hash": "c44843ff36f0724e51acb65cefdd705f"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/package.json": {
+    "mtime": 1776350541.3539443,
+    "ast_hash": "c8106c35d322a2177ddc26da13c047ce",
+    "semantic_hash": "c8106c35d322a2177ddc26da13c047ce"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/tsconfig.json": {
+    "mtime": 1775651352.899993,
+    "ast_hash": "8827451c4e35790dd3f3538c265e7d15",
+    "semantic_hash": "8827451c4e35790dd3f3538c265e7d15"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/vite.config.ts": {
+    "mtime": 1775738680.2056158,
+    "ast_hash": "b22c2b6037b5cf8b6847c8f6b384236e",
+    "semantic_hash": "b22c2b6037b5cf8b6847c8f6b384236e"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/src/App.tsx": {
+    "mtime": 1776779254.599612,
+    "ast_hash": "9741d8c675cab7410334bd3bdc074854",
+    "semantic_hash": "9741d8c675cab7410334bd3bdc074854"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/src/main.tsx": {
+    "mtime": 1775651352.8687124,
+    "ast_hash": "2b36426d5ad7e08ef79746aa524f4fb7",
+    "semantic_hash": "2b36426d5ad7e08ef79746aa524f4fb7"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/src/store.ts": {
+    "mtime": 1775651352.8790317,
+    "ast_hash": "31c68b32686ab71f9167f3d4197c9839",
+    "semantic_hash": "31c68b32686ab71f9167f3d4197c9839"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/src/types.ts": {
+    "mtime": 1775651352.874216,
+    "ast_hash": "8b26ebc98ea69093531ece1e1e8243a1",
+    "semantic_hash": "8b26ebc98ea69093531ece1e1e8243a1"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/src/api/client.ts": {
+    "mtime": 1776399511.0417101,
+    "ast_hash": "d392821633444b98c33b3a6339efce44",
+    "semantic_hash": "d392821633444b98c33b3a6339efce44"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/src/api/restClient.ts": {
+    "mtime": 1776779235.3096623,
+    "ast_hash": "d80bb695d279a928ea08b19773ca8234",
+    "semantic_hash": "d80bb695d279a928ea08b19773ca8234"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/src/api/supabaseClient.ts": {
+    "mtime": 1776350685.706651,
+    "ast_hash": "4746aaf44361e8db1a5e00ab655792ee",
+    "semantic_hash": "4746aaf44361e8db1a5e00ab655792ee"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/src/lib/supabase.ts": {
+    "mtime": 1776350608.891082,
+    "ast_hash": "0a5b99cd79cabd26c204e897d5d2d0a1",
+    "semantic_hash": "0a5b99cd79cabd26c204e897d5d2d0a1"
+  },
+  "/mnt/drive1/projects/hunter-system/frontend/src/lib/utils.ts": {
+    "mtime": 1775651352.889651,
+    "ast_hash": "8595c2f874aa1ff8c7cc28df2999f354",
+    "semantic_hash": "8595c2f874aa1ff8c7cc28df2999f354"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/.dart_tool/package_config.json": {
+    "mtime": 1776351354.9861448,
+    "ast_hash": "89a1214eb19eadb207b286d4bd407132",
+    "semantic_hash": "89a1214eb19eadb207b286d4bd407132"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/.dart_tool/package_graph.json": {
+    "mtime": 1776351354.9884727,
+    "ast_hash": "23961e68e9d10052f71b9c58d0e28ce1",
+    "semantic_hash": "23961e68e9d10052f71b9c58d0e28ce1"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/.dart_tool/dartpad/web_plugin_registrant.dart": {
+    "mtime": 1776351355.534278,
+    "ast_hash": "b25e625d3a6818f1cb7bff43cb7e69c7",
+    "semantic_hash": "b25e625d3a6818f1cb7bff43cb7e69c7"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/android/build.gradle.kts": {
+    "mtime": 1776188883.9902194,
+    "ast_hash": "f11f360aed44d4f6871b398346af14f0",
+    "semantic_hash": "f11f360aed44d4f6871b398346af14f0"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/android/gradlew": {
+    "mtime": 1776188884.0806057,
+    "ast_hash": "a6e11676df2f14eb33034b1fe608490d",
+    "semantic_hash": "a6e11676df2f14eb33034b1fe608490d"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/android/settings.gradle.kts": {
+    "mtime": 1776188883.9481714,
+    "ast_hash": "094e3cafe85d4dbf756dfe0bd754c6cb",
+    "semantic_hash": "094e3cafe85d4dbf756dfe0bd754c6cb"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/android/app/build.gradle.kts": {
+    "mtime": 1776188883.9804347,
+    "ast_hash": "d715c47defae14a8d2426c16c3bb694c",
+    "semantic_hash": "d715c47defae14a8d2426c16c3bb694c"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java": {
+    "mtime": 1776351355.619641,
+    "ast_hash": "5d4b9e2076dd5119d14e2606549d9cf9",
+    "semantic_hash": "5d4b9e2076dd5119d14e2606549d9cf9"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/android/app/src/main/kotlin/com/hunter/system/hunter_system_mobile/MainActivity.kt": {
+    "mtime": 1776188883.987934,
+    "ast_hash": "7dc856626fe780581d528d3c862e9486",
+    "semantic_hash": "7dc856626fe780581d528d3c862e9486"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/ios/Flutter/flutter_export_environment.sh": {
+    "mtime": 1776189859.875028,
+    "ast_hash": "8fcc514920151a952edbf106b34e6695",
+    "semantic_hash": "8fcc514920151a952edbf106b34e6695"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/ios/Flutter/ephemeral/flutter_lldb_helper.py": {
+    "mtime": 1776189859.8599713,
+    "ast_hash": "98fc75412162af387e2e3461e4e58094",
+    "semantic_hash": "98fc75412162af387e2e3461e4e58094"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/ios/Runner/AppDelegate.swift": {
+    "mtime": 1776188883.7973595,
+    "ast_hash": "303ca46dbd58544be7b816861d70a27c",
+    "semantic_hash": "303ca46dbd58544be7b816861d70a27c"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/ios/Runner/GeneratedPluginRegistrant.h": {
+    "mtime": 1776189859.9930465,
+    "ast_hash": "decb9041b5e91a07e66f4664e5dac408",
+    "semantic_hash": "decb9041b5e91a07e66f4664e5dac408"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/ios/Runner/GeneratedPluginRegistrant.m": {
+    "mtime": 1776351355.6429737,
+    "ast_hash": "2d7c5acfdf0fb02b7d02a59d210a56b1",
+    "semantic_hash": "2d7c5acfdf0fb02b7d02a59d210a56b1"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/ios/Runner/Runner-Bridging-Header.h": {
+    "mtime": 1776188883.7941928,
+    "ast_hash": "e07862ac930ed4d8479185d52c6cc66d",
+    "semantic_hash": "e07862ac930ed4d8479185d52c6cc66d"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json": {
+    "mtime": 1776188883.7521288,
+    "ast_hash": "c3cdf9688b604d14f2e76a8287e16167",
+    "semantic_hash": "c3cdf9688b604d14f2e76a8287e16167"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json": {
+    "mtime": 1776188883.7809806,
+    "ast_hash": "770f4f65e02ca2fc57f46f4f4148d15d",
+    "semantic_hash": "770f4f65e02ca2fc57f46f4f4148d15d"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/ios/RunnerTests/RunnerTests.swift": {
+    "mtime": 1776188883.8148293,
+    "ast_hash": "a225a382d14d7b16b6f602a5c1d49331",
+    "semantic_hash": "a225a382d14d7b16b6f602a5c1d49331"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/main.dart": {
+    "mtime": 1776352266.3698611,
+    "ast_hash": "323160a96d11bc6b35bdd306c3821036",
+    "semantic_hash": "323160a96d11bc6b35bdd306c3821036"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/core/config.dart": {
+    "mtime": 1776352231.7039874,
+    "ast_hash": "f113926d516f8d1309b9a5fbd6c67c3c",
+    "semantic_hash": "f113926d516f8d1309b9a5fbd6c67c3c"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/core/constants.dart": {
+    "mtime": 1776351315.169985,
+    "ast_hash": "54967d5d95723474b3987957109fac2e",
+    "semantic_hash": "54967d5d95723474b3987957109fac2e"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/core/theme.dart": {
+    "mtime": 1776351463.3660107,
+    "ast_hash": "25edd6324ad2e5789d26511d29f61e86",
+    "semantic_hash": "25edd6324ad2e5789d26511d29f61e86"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/features/auth/pages/login_page.dart": {
+    "mtime": 1776351317.1822424,
+    "ast_hash": "a8ff4e2ed89cb1be98a37dc8918896d3",
+    "semantic_hash": "a8ff4e2ed89cb1be98a37dc8918896d3"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/features/dashboard/pages/dashboard_page.dart": {
+    "mtime": 1776191557.605995,
+    "ast_hash": "7d0d4ac6ae7f4c3960b73d4c419715a1",
+    "semantic_hash": "7d0d4ac6ae7f4c3960b73d4c419715a1"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/models/quest_model.dart": {
+    "mtime": 1776191676.7990146,
+    "ast_hash": "ed9c5980caaad36a4120347dc01ee7ce",
+    "semantic_hash": "ed9c5980caaad36a4120347dc01ee7ce"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/models/quest_model.g.dart": {
+    "mtime": 1776351430.5862634,
+    "ast_hash": "a3dc433cb77769f384c0a602116f5ac2",
+    "semantic_hash": "a3dc433cb77769f384c0a602116f5ac2"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/models/user_model.dart": {
+    "mtime": 1776191584.813889,
+    "ast_hash": "42ff3a619a724ffb65611179bdf2e42e",
+    "semantic_hash": "42ff3a619a724ffb65611179bdf2e42e"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/models/user_model.g.dart": {
+    "mtime": 1776351430.5857735,
+    "ast_hash": "274e46bf763fd8ead7bd956e505fe5d2",
+    "semantic_hash": "274e46bf763fd8ead7bd956e505fe5d2"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/providers/auth_provider.dart": {
+    "mtime": 1776191927.6606758,
+    "ast_hash": "ca96b6886536b95f317b9c379c0f32a0",
+    "semantic_hash": "ca96b6886536b95f317b9c379c0f32a0"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/providers/hunter_provider.dart": {
+    "mtime": 1776352286.516224,
+    "ast_hash": "093f3665c3167c96d5035e8cd67ce592",
+    "semantic_hash": "093f3665c3167c96d5035e8cd67ce592"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/services/api_service.dart": {
+    "mtime": 1776352328.583645,
+    "ast_hash": "797d31b68fa192c2d5d9d176c9042b37",
+    "semantic_hash": "797d31b68fa192c2d5d9d176c9042b37"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/services/supabase_service.dart": {
+    "mtime": 1776350747.09943,
+    "ast_hash": "748739bc7b477cedcd471727838802f1",
+    "semantic_hash": "748739bc7b477cedcd471727838802f1"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/widgets/hunter_button.dart": {
+    "mtime": 1776191811.6546268,
+    "ast_hash": "370eaa20365a2ffa47c90743ca084a53",
+    "semantic_hash": "370eaa20365a2ffa47c90743ca084a53"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/lib/widgets/hunter_card.dart": {
+    "mtime": 1776191857.3040314,
+    "ast_hash": "5add66817b02f65318802eca090c8824",
+    "semantic_hash": "5add66817b02f65318802eca090c8824"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/linux/flutter/generated_plugin_registrant.cc": {
+    "mtime": 1776351355.6264577,
+    "ast_hash": "638422954f06f3ff805e3bb23521f938",
+    "semantic_hash": "638422954f06f3ff805e3bb23521f938"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/linux/flutter/generated_plugin_registrant.h": {
+    "mtime": 1776189859.9811788,
+    "ast_hash": "d295462c9da9f7fef22dc86c34492318",
+    "semantic_hash": "d295462c9da9f7fef22dc86c34492318"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/linux/runner/main.cc": {
+    "mtime": 1776188883.692274,
+    "ast_hash": "0643b8609698e96b3abd63c210361a87",
+    "semantic_hash": "0643b8609698e96b3abd63c210361a87"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/linux/runner/my_application.cc": {
+    "mtime": 1776188883.6872408,
+    "ast_hash": "f406eb2bf91a695b4f97eed5ccd7dfb0",
+    "semantic_hash": "f406eb2bf91a695b4f97eed5ccd7dfb0"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/linux/runner/my_application.h": {
+    "mtime": 1776188883.6904829,
+    "ast_hash": "326a85d68857137fdfe8698a0c071baf",
+    "semantic_hash": "326a85d68857137fdfe8698a0c071baf"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/macos/Flutter/GeneratedPluginRegistrant.swift": {
+    "mtime": 1776351355.6455035,
+    "ast_hash": "570703f0f94a8d791f663224464d3f28",
+    "semantic_hash": "570703f0f94a8d791f663224464d3f28"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/macos/Flutter/ephemeral/flutter_export_environment.sh": {
+    "mtime": 1776189859.8861203,
+    "ast_hash": "502297d20715f8a12839422388c6ae54",
+    "semantic_hash": "502297d20715f8a12839422388c6ae54"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/macos/Runner/AppDelegate.swift": {
+    "mtime": 1776188883.5718894,
+    "ast_hash": "2a7411ae3e7c6715525b94b6f8d2e80b",
+    "semantic_hash": "2a7411ae3e7c6715525b94b6f8d2e80b"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/macos/Runner/MainFlutterWindow.swift": {
+    "mtime": 1776188883.6121814,
+    "ast_hash": "4a747b1f256d62a2bbb79bd976891eb5",
+    "semantic_hash": "4a747b1f256d62a2bbb79bd976891eb5"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json": {
+    "mtime": 1776188883.5510776,
+    "ast_hash": "5bd47c3ef1d1a261037c87fb3ddb9cfd",
+    "semantic_hash": "5bd47c3ef1d1a261037c87fb3ddb9cfd"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/macos/RunnerTests/RunnerTests.swift": {
+    "mtime": 1776188883.6347802,
+    "ast_hash": "97d3a20fd20a063c192e886d1822b4a8",
+    "semantic_hash": "97d3a20fd20a063c192e886d1822b4a8"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/test/widget_test.dart": {
+    "mtime": 1776351431.3906467,
+    "ast_hash": "53ddf9a9963409f8c60fb35747d51d15",
+    "semantic_hash": "53ddf9a9963409f8c60fb35747d51d15"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/web/manifest.json": {
+    "mtime": 1776188883.9597244,
+    "ast_hash": "bbdba548155bb4a1c48d7200fc045346",
+    "semantic_hash": "bbdba548155bb4a1c48d7200fc045346"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/windows/flutter/generated_plugin_registrant.cc": {
+    "mtime": 1776351355.6343038,
+    "ast_hash": "8f827c92146e46fc11f4e794a498348b",
+    "semantic_hash": "8f827c92146e46fc11f4e794a498348b"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/windows/flutter/generated_plugin_registrant.h": {
+    "mtime": 1776189859.987765,
+    "ast_hash": "0ea33875f9f8e118f9c2ded03e2e2835",
+    "semantic_hash": "0ea33875f9f8e118f9c2ded03e2e2835"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/windows/runner/flutter_window.cpp": {
+    "mtime": 1776188884.0051925,
+    "ast_hash": "9b92b95a9eecce25e3e9d356688d0cb6",
+    "semantic_hash": "9b92b95a9eecce25e3e9d356688d0cb6"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/windows/runner/flutter_window.h": {
+    "mtime": 1776188884.028544,
+    "ast_hash": "79bea736711adda00c49419a39a4a0b4",
+    "semantic_hash": "79bea736711adda00c49419a39a4a0b4"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/windows/runner/main.cpp": {
+    "mtime": 1776188884.021436,
+    "ast_hash": "46ceb0de1fd3fe04f2e2b21a693bd19d",
+    "semantic_hash": "46ceb0de1fd3fe04f2e2b21a693bd19d"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/windows/runner/resource.h": {
+    "mtime": 1776188884.0379815,
+    "ast_hash": "c8f809a4f8d3f2f625e358fd90f72fee",
+    "semantic_hash": "c8f809a4f8d3f2f625e358fd90f72fee"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/windows/runner/utils.cpp": {
+    "mtime": 1776188884.0324447,
+    "ast_hash": "9b5697b276c8ad67a02ec12ad2c09851",
+    "semantic_hash": "9b5697b276c8ad67a02ec12ad2c09851"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/windows/runner/utils.h": {
+    "mtime": 1776188884.035179,
+    "ast_hash": "c741fb9cddbf3a62f4688b6cca39ddcc",
+    "semantic_hash": "c741fb9cddbf3a62f4688b6cca39ddcc"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/windows/runner/win32_window.cpp": {
+    "mtime": 1776188884.0413866,
+    "ast_hash": "928e86a2be27eca688669dce6c9177d9",
+    "semantic_hash": "928e86a2be27eca688669dce6c9177d9"
+  },
+  "/mnt/drive1/projects/hunter-system/mobile/windows/runner/win32_window.h": {
+    "mtime": 1776188884.0307095,
+    "ast_hash": "5a4cf051798d7e6931ee0405a4523c8f",
+    "semantic_hash": "5a4cf051798d7e6931ee0405a4523c8f"
+  },
+  "/mnt/drive1/projects/hunter-system/src/App.tsx": {
+    "mtime": 1775629458.0,
+    "ast_hash": "cd1cddb8658046b54c9894e7d182aa80",
+    "semantic_hash": "cd1cddb8658046b54c9894e7d182aa80"
+  },
+  "/mnt/drive1/projects/hunter-system/src/firebase.ts": {
+    "mtime": 1775629458.0,
+    "ast_hash": "21ae311584fa7d5a18ddf377eeb9f47a",
+    "semantic_hash": "21ae311584fa7d5a18ddf377eeb9f47a"
+  },
+  "/mnt/drive1/projects/hunter-system/src/main.tsx": {
+    "mtime": 1775629458.0,
+    "ast_hash": "2b36426d5ad7e08ef79746aa524f4fb7",
+    "semantic_hash": "2b36426d5ad7e08ef79746aa524f4fb7"
+  },
+  "/mnt/drive1/projects/hunter-system/src/store.ts": {
+    "mtime": 1775629458.0,
+    "ast_hash": "31c68b32686ab71f9167f3d4197c9839",
+    "semantic_hash": "31c68b32686ab71f9167f3d4197c9839"
+  },
+  "/mnt/drive1/projects/hunter-system/src/types.ts": {
+    "mtime": 1775629458.0,
+    "ast_hash": "8b26ebc98ea69093531ece1e1e8243a1",
+    "semantic_hash": "8b26ebc98ea69093531ece1e1e8243a1"
+  },
+  "/mnt/drive1/projects/hunter-system/src/lib/utils.ts": {
+    "mtime": 1775629458.0,
+    "ast_hash": "8595c2f874aa1ff8c7cc28df2999f354",
+    "semantic_hash": "8595c2f874aa1ff8c7cc28df2999f354"
+  }
+}

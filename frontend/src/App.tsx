@@ -43,7 +43,9 @@ import {
   ChevronDown,
   ChevronUp,
   MoreVertical,
-  Settings
+  Settings,
+  Trash2,
+  Edit3
 } from 'lucide-react';
 import { 
   Radar, 
@@ -91,6 +93,7 @@ import {
   listGroupAPI,
   setToken,
   getToken,
+  logout
 } from './api/client';
 
 // --- Components ---
@@ -179,6 +182,7 @@ export default function App() {
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   
   const [showQuestModal, setShowQuestModal] = useState(false);
+  const [editingQuest, setEditingQuest] = useState<Quest | null>(null);
   const [showBossModal, setShowBossModal] = useState(false);
   const [showHabitModal, setShowHabitModal] = useState(false);
   const [showRewardModal, setShowRewardModal] = useState(false);
@@ -186,6 +190,7 @@ export default function App() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [victoryMessage, setVictoryMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [damageInputs, setDamageInputs] = useState<Record<string, string>>({});
 
   // --- Data Fetch ---
   const refreshData = useCallback(async () => {
@@ -341,7 +346,8 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout();
     setToken(null);
     setIsLoggedIn(false);
     setUserEmail('');
@@ -360,11 +366,22 @@ export default function App() {
     } catch (err: any) { console.error('Complete quest error:', err); }
   };
 
+  const deleteQuest = async (id: string) => {
+    if (confirm("Are you sure you want to delete this quest?")) {
+      try {
+        await questAPI.delete(id);
+        await refreshData();
+      } catch (err: any) { console.error('Delete quest error:', err); }
+    }
+  };
+
   const failQuest = async (questId: string) => {
-    try {
-      await questAPI.update(questId, { failed: true } as any);
-      await refreshData();
-    } catch (err: any) { console.error('Fail quest error:', err); }
+    if (confirm("Fail this quest? You will lose 50% of the XP reward as a penalty.")) {
+      try {
+        await questAPI.fail(questId, true);
+        await refreshData();
+      } catch (err: any) { console.error('Fail quest error:', err); }
+    }
   };
 
   const dealDamage = async (bossId: string, amount: number) => {
@@ -675,11 +692,21 @@ export default function App() {
               <h1 className="text-xl font-black italic text-white md:hidden">Hunter System</h1>
               <div className="hidden md:block">
                 <h2 className="text-xl font-black">{
-                  selectedListId === 'my-day' ? 'My Day' :
-                  selectedListId === 'important' ? 'Important' :
-                  selectedListId === 'planned' ? 'Planned' :
-                  selectedListId === 'all' ? 'All Quests' :
-                  data.lists.find(l => l.id === selectedListId)?.name || 'Hunter System'
+                  activeTab === 'profile' ? 'Hunter Profile' :
+                  activeTab === 'quests' ? (
+                    selectedListId === 'my-day' ? 'My Day' :
+                    selectedListId === 'important' ? 'Important' :
+                    selectedListId === 'planned' ? 'Planned' :
+                    selectedListId === 'all' ? 'All Quests' :
+                    data.lists.find(l => l.id === selectedListId)?.name || 'Quests'
+                  ) :
+                  activeTab === 'bosses' ? 'Boss Raids' :
+                  activeTab === 'habits' ? 'Daily Habits' :
+                  activeTab === 'rewards' ? 'Item Shop' :
+                  activeTab === 'skills' ? 'Skill Tree' :
+                  activeTab === 'inventory' ? 'Inventory' :
+                  activeTab === 'achievements' ? 'Achievements' :
+                  'Hunter System'
                 }</h2>
                 <p className="text-[10px] font-mono text-white/40">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
               </div>
@@ -690,12 +717,22 @@ export default function App() {
               <Coins className="w-4 h-4 text-accent-gold" />
               <span className="font-mono font-bold text-accent-gold">{data.gold}</span>
             </div>
+
+            <button 
+              onClick={handleLogout} 
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 border border-white/10 hover:border-red-400/20 transition-all group"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-[10px] font-orbitron font-bold uppercase hidden sm:block">Logout</span>
+            </button>
             <div className="text-right hidden sm:block">
               <div className="text-[10px] uppercase font-orbitron text-white/50">Current Rank</div>
               <div className={cn("text-lg font-black font-orbitron", `text-rank-${currentRank.toLowerCase()}`)}>
                 {currentRank}-RANK
               </div>
             </div>
+
             <div className="w-12 h-12 rounded-full border-2 border-accent-blue/50 p-0.5">
               <div className="w-full h-full rounded-full bg-accent-blue/20 flex items-center justify-center overflow-hidden">
                 <UserIcon className="text-accent-blue w-6 h-6" />
@@ -752,6 +789,71 @@ export default function App() {
                   </div>
                 </Card>
               </div>
+
+
+              <div id="profile-extras" className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
+                {/* Top Priority Quests */}
+                <Card className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+                    <Target className="w-4 h-4 text-accent-gold" />
+                    <h3 className="text-sm font-black font-orbitron uppercase tracking-wider">Top Priorities</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {data.quests.filter(q => q.isImportant && !q.completed).slice(0, 3).length === 0 ? (
+                      <p className="text-[10px] text-white/30 italic">No high-priority quests assigned.</p>
+                    ) : (
+                      data.quests.filter(q => q.isImportant && !q.completed).slice(0, 3).map(q => (
+                        <div key={q.id} className="flex items-center justify-between group">
+                          <div className="flex items-center gap-3">
+                            <div className={cn("w-1 h-8 rounded-full", getDifficultyColor(q.difficulty).split(' ')[0].replace('border-', 'bg-'))} />
+                            <div>
+                              <div className="text-xs font-bold group-hover:text-accent-blue transition-colors">{q.title}</div>
+                              <div className="text-[8px] font-mono text-white/40">{q.difficulty}-RANK • {q.type}</div>
+                            </div>
+                          </div>
+                          <button onClick={() => completeQuest(q.id)} className="p-1.5 rounded bg-white/5 hover:bg-accent-blue/20 text-white/20 hover:text-accent-blue transition-all">
+                            <Check className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {data.quests.filter(q => q.isImportant && !q.completed).length > 3 && (
+                    <button onClick={() => { setSelectedListId('important'); setActiveTab('quests'); }} className="text-[10px] text-accent-blue hover:underline font-orbitron w-full text-center pt-2">
+                      VIEW ALL PRIORITIES
+                    </button>
+                  )}
+                </Card>
+
+                {/* Recent Achievements */}
+                <Card className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+                    <Trophy className="w-4 h-4 text-accent-purple" />
+                    <h3 className="text-sm font-black font-orbitron uppercase tracking-wider">Recent Feats</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {data.achievements.filter(a => a.unlocked).slice(0, 3).length === 0 ? (
+                      <p className="text-[10px] text-white/30 italic">No achievements unlocked yet.</p>
+                    ) : (
+                      data.achievements.filter(a => a.unlocked).slice(0, 3).map(a => (
+                        <div key={a.id} className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-accent-purple/10 flex items-center justify-center text-accent-purple shrink-0">
+                            <Zap className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold">{a.name}</div>
+                            <div className="text-[8px] text-white/40 line-clamp-1">{a.description}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <button onClick={() => setActiveTab('achievements')} className="text-[10px] text-accent-purple hover:underline font-orbitron w-full text-center pt-2">
+                    VIEW ALL ACHIEVEMENTS
+                  </button>
+                </Card>
+              </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
                 {Object.entries(data.stats).map(([stat, value]) => (
                   <Card key={stat} className="flex flex-col items-center py-6 hover:bg-white/10 transition-colors cursor-default group">
@@ -819,6 +921,20 @@ export default function App() {
                           >
                             <Sun className="w-4 h-4" />
                           </button>
+                          <button 
+                            onClick={() => { setEditingQuest(quest); setShowQuestModal(true); }}
+                            className="p-1 rounded hover:bg-white/5 transition-colors text-white/20 hover:text-white"
+                            title="Edit Quest"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => deleteQuest(quest.id)}
+                            className="p-1 rounded hover:bg-white/5 transition-colors text-white/20 hover:text-red-500"
+                            title="Delete Quest"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                           <span className={cn("font-orbitron text-xs font-bold", getDifficultyColor(quest.difficulty).split(' ')[1])}>
                             {quest.difficulty}-RANK
                           </span>
@@ -877,10 +993,25 @@ export default function App() {
                             </div>
                           </div>
                           <div className="flex gap-4 items-center">
-                            <button onClick={() => { const damage = prompt("Enter damage amount (points of progress):"); if (damage && !isNaN(Number(damage))) dealDamage(boss.id, Number(damage)); }}
-                              className="bg-accent-gold text-black px-6 py-2 rounded font-orbitron text-xs font-bold hover:bg-white transition-all shadow-[0_0_20px_rgba(240,192,64,0.4)]">
-                              DEAL DAMAGE
-                            </button>
+                            <div className="flex rounded overflow-hidden">
+                              <input 
+                                type="number" 
+                                placeholder="HP" 
+                                value={damageInputs[boss.id] || ''} 
+                                onChange={e => setDamageInputs(prev => ({...prev, [boss.id]: e.target.value}))}
+                                className="w-16 bg-white/10 text-white px-2 py-1 outline-none text-xs font-mono border-y border-l border-accent-gold/20 focus:border-accent-gold/50"
+                              />
+                              <button onClick={() => { 
+                                  const damage = Number(damageInputs[boss.id]); 
+                                  if (damage && !isNaN(damage)) {
+                                    dealDamage(boss.id, damage);
+                                    setDamageInputs(prev => ({...prev, [boss.id]: ''}));
+                                  } 
+                                }}
+                                className="bg-accent-gold text-black px-4 py-2 font-orbitron text-xs font-bold hover:bg-white transition-all shadow-[0_0_20px_rgba(240,192,64,0.4)]">
+                                DEAL DAMAGE
+                              </button>
+                            </div>
                             <span className="text-[10px] font-mono text-white/40">REWARD: +{boss.xpReward} XP</span>
                           </div>
                         </div>
@@ -1024,16 +1155,16 @@ export default function App() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {data.customRewards.map(reward => (
-                  <Card key={reward.id} className={cn("relative overflow-hidden", reward.purchased ? "opacity-50 grayscale" : "")}>
+                  <Card key={reward.id} className="relative overflow-hidden">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="text-sm font-bold text-white">{reward.name}</h3>
                       <div className="flex items-center gap-1 text-accent-gold font-mono font-bold text-xs"><Coins className="w-3 h-3" /> {reward.cost}</div>
                     </div>
                     <p className="text-[10px] text-white/60 mb-4 h-8 line-clamp-2">{reward.description}</p>
-                    <button disabled={reward.purchased || data.gold < reward.cost} onClick={() => purchaseReward(reward.id)}
+                    <button disabled={data.gold < reward.cost} onClick={() => purchaseReward(reward.id)}
                       className={cn("w-full py-2 rounded font-orbitron text-[10px] transition-all",
-                        reward.purchased ? "bg-white/10 text-white/30 cursor-not-allowed" : data.gold >= reward.cost ? "bg-accent-gold hover:bg-accent-gold/80 text-black" : "bg-white/5 text-white/20 cursor-not-allowed")}>
-                      {reward.purchased ? "CLAIMED" : "PURCHASE"}
+                        data.gold >= reward.cost ? "bg-accent-gold hover:bg-accent-gold/80 text-black" : "bg-white/5 text-white/20 cursor-not-allowed")}>
+                      PURCHASE
                     </button>
                   </Card>
                 ))}
@@ -1074,40 +1205,47 @@ export default function App() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-background/90 backdrop-blur-sm">
           <Card className="w-full max-w-md bg-background border-accent-blue/30" glow>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-black">Create Quest</h2>
-              <button onClick={() => setShowQuestModal(false)} className="text-white/40 hover:text-white"><X /></button>
+              <h2 className="text-xl font-black">{editingQuest ? 'Edit Quest' : 'Create Quest'}</h2>
+              <button onClick={() => { setShowQuestModal(false); setEditingQuest(null); }} className="text-white/40 hover:text-white"><X /></button>
             </div>
             <form className="space-y-4" onSubmit={async (e) => {
               e.preventDefault();
               const fd = new FormData(e.currentTarget);
+              const payload = {
+                title: fd.get('title') as string,
+                type: fd.get('type') as string,
+                difficulty: fd.get('difficulty') as string,
+                category: fd.get('category') as string,
+                xp_reward: Number(fd.get('xp')),
+                gold_reward: Number(fd.get('goldReward')),
+                stat_boost_stat: fd.get('stat') as string,
+                stat_boost_amount: Number(fd.get('amount')),
+                has_deadline: !!fd.get('deadline'),
+                deadline: fd.get('deadline') as string || null,
+                list_id: (fd.get('listId') as string) || null,
+                is_important: !!fd.get('isImportant'),
+                is_my_day: !!fd.get('isMyDay'),
+              } as any;
+              
               try {
-                await questAPI.create({
-                  title: fd.get('title') as string,
-                  type: fd.get('type') as string,
-                  difficulty: fd.get('difficulty') as string,
-                  category: fd.get('category') as string,
-                  xp_reward: Number(fd.get('xp')),
-                  gold_reward: Number(fd.get('goldReward')),
-                  stat_boost_stat: fd.get('stat') as string,
-                  stat_boost_amount: Number(fd.get('amount')),
-                  has_deadline: !!fd.get('deadline'),
-                  deadline: fd.get('deadline') as string || null,
-                  list_id: (fd.get('listId') as string) || null,
-                  is_important: !!fd.get('isImportant'),
-                  is_my_day: false,
-                } as any);
+                if (editingQuest) {
+                  await questAPI.update(editingQuest.id, payload);
+                } else {
+                  await questAPI.create(payload);
+                }
                 await refreshData();
                 setShowQuestModal(false);
-              } catch (err) { console.error('Create quest error:', err); }
+                setEditingQuest(null);
+              } catch (err) { console.error('Save quest error:', err); }
             }}>
               <div className="space-y-1">
                 <label className="text-[10px] font-orbitron text-white/40 uppercase">Title</label>
-                <input name="title" required className="w-full bg-white/5 border border-white/10 rounded p-2 text-sm focus:border-accent-blue outline-none" placeholder="e.g. Morning Run" />
+                <input name="title" required defaultValue={editingQuest?.title || ''} className="w-full bg-white/5 border border-white/10 rounded p-2 text-sm focus:border-accent-blue outline-none" placeholder="e.g. Morning Run" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-orbitron text-white/40 uppercase">Type</label>
-                  <select name="type" className="w-full bg-white/10 border border-white/20 rounded p-2 text-sm outline-none focus:border-accent-blue transition-colors">
+                  <select name="type" defaultValue={editingQuest?.type || 'DAILY'} className="w-full bg-white/10 border border-white/20 rounded p-2 text-sm outline-none focus:border-accent-blue transition-colors">
                     <option value="DAILY" className="bg-background text-white">DAILY</option>
                     <option value="MAIN" className="bg-background text-white">MAIN</option>
                     <option value="SIDE" className="bg-background text-white">SIDE</option>
@@ -1116,7 +1254,7 @@ export default function App() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-orbitron text-white/40 uppercase">Difficulty</label>
-                  <select name="difficulty" className="w-full bg-white/10 border border-white/20 rounded p-2 text-sm outline-none focus:border-accent-blue transition-colors">
+                  <select name="difficulty" defaultValue={editingQuest?.difficulty || 'E'} className="w-full bg-white/10 border border-white/20 rounded p-2 text-sm outline-none focus:border-accent-blue transition-colors">
                     <option value="E" className="bg-background text-white">E-RANK</option>
                     <option value="D" className="bg-background text-white">D-RANK</option>
                     <option value="C" className="bg-background text-white">C-RANK</option>
@@ -1129,7 +1267,7 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-orbitron text-white/40 uppercase">Category</label>
-                  <select name="category" className="w-full bg-white/10 border border-white/20 rounded p-2 text-sm outline-none focus:border-accent-blue transition-colors">
+                  <select name="category" defaultValue={editingQuest?.category || 'FITNESS'} className="w-full bg-white/10 border border-white/20 rounded p-2 text-sm outline-none focus:border-accent-blue transition-colors">
                     <option value="FITNESS" className="bg-background text-white">FITNESS</option>
                     <option value="STUDY" className="bg-background text-white">STUDY</option>
                     <option value="WORK" className="bg-background text-white">WORK</option>
@@ -1140,7 +1278,7 @@ export default function App() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-orbitron text-white/40 uppercase">Target List</label>
-                  <select name="listId" className="w-full bg-white/10 border border-white/20 rounded p-2 text-sm outline-none focus:border-accent-blue transition-colors">
+                  <select name="listId" defaultValue={editingQuest?.listId || ''} className="w-full bg-white/10 border border-white/20 rounded p-2 text-sm outline-none focus:border-accent-blue transition-colors">
                     <option value="" className="bg-background text-white">No List</option>
                     {data.lists.map(l => (<option key={l.id} value={l.id} className="bg-background text-white">{l.name}</option>))}
                   </select>
@@ -1149,7 +1287,7 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-orbitron text-white/40 uppercase">Stat Boost</label>
-                  <select name="stat" className="w-full bg-white/10 border border-white/20 rounded p-2 text-sm outline-none focus:border-accent-blue transition-colors">
+                  <select name="stat" defaultValue={editingQuest?.statBoost.stat || 'STR'} className="w-full bg-white/10 border border-white/20 rounded p-2 text-sm outline-none focus:border-accent-blue transition-colors">
                     <option value="STR" className="bg-background text-white">STR</option>
                     <option value="INT" className="bg-background text-white">INT</option>
                     <option value="AGI" className="bg-background text-white">AGI</option>
@@ -1160,29 +1298,38 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-4 pt-4">
                   <label className="flex items-center gap-2 cursor-pointer group">
-                    <input type="checkbox" name="isImportant" className="hidden peer" />
+                    <input type="checkbox" name="isImportant" defaultChecked={editingQuest?.isImportant || false} className="hidden peer" />
                     <div className="w-4 h-4 border border-white/20 rounded flex items-center justify-center group-hover:border-accent-gold transition-colors peer-checked:bg-accent-gold peer-checked:border-accent-gold">
                       <Star className="w-3 h-3 text-black opacity-0 peer-checked:opacity-100" />
                     </div>
                     <span className="text-xs text-white/60">Important</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input type="checkbox" name="isMyDay" defaultChecked={editingQuest?.isMyDay || false} className="hidden peer" />
+                    <div className="w-4 h-4 border border-white/20 rounded flex items-center justify-center group-hover:border-accent-blue transition-colors peer-checked:bg-accent-blue peer-checked:border-accent-blue">
+                      <Sun className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" />
+                    </div>
+                    <span className="text-xs text-white/60">Add to My Day</span>
                   </label>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-orbitron text-white/40 uppercase">XP Reward</label>
-                  <input name="xp" type="number" defaultValue="100" className="w-full bg-white/5 border border-white/10 rounded p-2 text-sm outline-none" />
+                  <input name="xp" type="number" defaultValue={editingQuest?.xpReward || "100"} className="w-full bg-white/5 border border-white/10 rounded p-2 text-sm outline-none" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-orbitron text-white/40 uppercase">Gold Reward</label>
-                  <input name="goldReward" type="number" defaultValue="50" className="w-full bg-white/5 border border-white/10 rounded p-2 text-sm outline-none" />
+                  <input name="goldReward" type="number" defaultValue={editingQuest?.goldReward || "50"} className="w-full bg-white/5 border border-white/10 rounded p-2 text-sm outline-none" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-orbitron text-white/40 uppercase">Stat Amount</label>
-                  <input name="amount" type="number" defaultValue="1" className="w-full bg-white/5 border border-white/10 rounded p-2 text-sm outline-none" />
+                  <input name="amount" type="number" defaultValue={editingQuest?.statBoost.amount || "1"} className="w-full bg-white/5 border border-white/10 rounded p-2 text-sm outline-none" />
                 </div>
               </div>
-              <button type="submit" className="w-full bg-accent-blue text-white py-3 rounded-lg font-orbitron text-sm font-bold glow-blue mt-4">ACCEPT QUEST</button>
+              <button type="submit" className="w-full bg-accent-blue text-white py-3 rounded-lg font-orbitron text-sm font-bold glow-blue mt-4">
+                {editingQuest ? 'UPDATE QUEST' : 'ACCEPT QUEST'}
+              </button>
             </form>
           </Card>
         </div>

@@ -9,6 +9,12 @@ router.use(authenticateToken);
 // GET all quests
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
+    // Auto-reset My Day for quests not updated today
+    await query(
+      'UPDATE quests SET is_my_day = false WHERE user_id = $1 AND is_my_day = true AND updated_at < CURRENT_DATE',
+      [req.userId]
+    );
+
     const result = await query(
       'SELECT * FROM quests WHERE user_id = $1 ORDER BY created_at DESC',
       [req.userId]
@@ -144,6 +150,40 @@ router.post('/:id/complete', async (req: AuthRequest, res: Response) => {
   } catch (err) {
     console.error('Complete quest error:', err);
     res.status(500).json({ error: 'Failed to complete quest' });
+  }
+});
+
+// POST fail quest
+router.post('/:id/fail', async (req: AuthRequest, res: Response) => {
+  try {
+    const { applyPenalty } = req.body;
+    const questResult = await query('SELECT * FROM quests WHERE id = $1 AND user_id = $2', [req.params.id, req.userId]);
+    if (questResult.rows.length === 0) return res.status(404).json({ error: 'Quest not found' });
+    const quest = questResult.rows[0];
+
+    if (quest.completed || quest.failed) return res.status(400).json({ error: 'Quest already completed or failed' });
+
+    if (applyPenalty) {
+      // Deduct half the reward XP as penalty, floor at 0
+      const penaltyXP = Math.floor(quest.xp_reward / 2);
+      await query(
+        `UPDATE users SET xp = GREATEST(0, xp - $1) WHERE id = $2`,
+        [penaltyXP, req.userId]
+      );
+    }
+
+    const updatedQuest = await query(
+      'UPDATE quests SET failed = true WHERE id = $1 RETURNING *',
+      [req.params.id]
+    );
+
+    res.json({
+      quest: updatedQuest.rows[0],
+      message: 'Quest failed'
+    });
+  } catch (err) {
+    console.error('Fail quest error:', err);
+    res.status(500).json({ error: 'Failed to fail quest' });
   }
 });
 
