@@ -7,3 +7,6 @@ coverage/
 .env*
 !.env.example
 .aider*
+.mcp.json
+.claude/
+graphify-out/
