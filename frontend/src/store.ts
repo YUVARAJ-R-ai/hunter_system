@@ -28,6 +28,9 @@ export const INITIAL_DATA: HunterData = {
     END: 10,
     SEN: 10,
   },
+  statPoints: 0,
+  hp: 100,
+  shadows: [],
   listGroups: [
     { id: 'g1', name: 'My task', order: 1 },
     { id: 'g2', name: 'Entertainment', order: 2 },

@@ -1,7 +1,7 @@
 import * as restClient from './restClient';
 import * as supabaseClient from './supabaseClient';
 
-const useSupabase = false; // Forced to local backend to avoid Supabase rate limits
+const useSupabase = import.meta.env.VITE_BACKEND_MODE === 'supabase';
 
 const activeClient = useSupabase ? supabaseClient : restClient;
 
@@ -18,6 +18,7 @@ export const achievementAPI = activeClient.achievementAPI;
 export const rewardAPI = activeClient.rewardAPI;
 export const listAPI = activeClient.listAPI;
 export const listGroupAPI = activeClient.listGroupAPI;
+export const workoutAPI = (activeClient as any).workoutAPI;
 
 export const logout = async () => {
     if (useSupabase && 'logout' in supabaseClient) {

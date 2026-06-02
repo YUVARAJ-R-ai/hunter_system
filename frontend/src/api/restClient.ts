@@ -64,6 +64,11 @@ export const hunterAPI = {
     request<any>('/hunter/stats', { method: 'PUT', body: JSON.stringify(data) }),
   addXP: (xp: number) =>
     request<any>('/hunter/add-xp', { method: 'POST', body: JSON.stringify({ xp }) }),
+  allocateStatPoint: (statToBoost: string, amount: number = 1) =>
+    Promise.resolve({ success: true, remainingPoints: 0 }),
+  extractShadow: (bossId: string, shadowName: string) =>
+    Promise.resolve({ success: true, name: shadowName }),
+  getShadows: () => Promise.resolve([] as any[]),
 };
 
 // --- Generic CRUD factory ---

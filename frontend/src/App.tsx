@@ -67,6 +67,7 @@ import {
   Difficulty, 
   Category,
   ItemRarity,
+  Shadow,
   ListGroup,
   List,
   Reward,
@@ -97,6 +98,7 @@ import {
 } from './api/client';
 
 // --- Components ---
+import WorkoutTracker from './components/WorkoutTracker';
 
 const ProgressBar = ({ current, max, color = 'bg-accent-blue', label }: { current: number, max: number, color?: string, label?: string }) => {
   const percentage = Math.min(Math.max((current / max) * 100, 0), 100);
@@ -123,16 +125,17 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   glow?: boolean;
+  glowColor?: string;
   onClick?: () => void;
   key?: React.Key;
 }
 
-const Card = ({ children, className, glow = false, onClick }: CardProps) => (
+const Card = ({ children, className, glow = false, glowColor = "glow-blue", onClick }: CardProps) => (
   <div 
     onClick={onClick}
     className={cn(
       "bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm transition-all duration-300",
-      glow && "glow-blue border-accent-blue/30",
+      glow && `${glowColor} ${glowColor.includes('purple') ? 'border-accent-purple/30' : 'border-accent-blue/30'}`,
       onClick && "cursor-pointer hover:bg-white/10",
       className
     )}
@@ -177,7 +180,8 @@ export default function App() {
 
   // App data
   const [data, setData] = useState<HunterData>(INITIAL_DATA);
-  const [activeTab, setActiveTab] = useState<'profile' | 'quests' | 'bosses' | 'skills' | 'inventory' | 'achievements' | 'habits' | 'rewards'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'quests' | 'bosses' | 'skills' | 'inventory' | 'achievements' | 'habits' | 'rewards' | 'workout'>('profile');
+  const [activeWorkout, setActiveWorkout] = useState<any>(null);
   const [selectedListId, setSelectedListId] = useState<string | 'my-day' | 'important' | 'planned' | 'all'>('all');
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   
@@ -189,6 +193,10 @@ export default function App() {
   const [showListModal, setShowListModal] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [victoryMessage, setVictoryMessage] = useState<string | null>(null);
+  const [activeExtractionBoss, setActiveExtractionBoss] = useState<Boss | null>(null);
+  const [extractionAttempts, setExtractionAttempts] = useState(3);
+  const [extractionStatus, setExtractionStatus] = useState<'idle' | 'extracting' | 'success' | 'fail'>('idle');
+  const [extractionName, setExtractionName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [damageInputs, setDamageInputs] = useState<Record<string, string>>({});
 
@@ -298,6 +306,16 @@ export default function App() {
           END: profile.stats?.end ?? 10,
           SEN: profile.stats?.sen ?? 10,
         },
+        statPoints: profile.stat_points ?? 0,
+        hp: profile.hp ?? 100,
+        shadows: (profile.shadows || []).map((sh: any) => ({
+          id: sh.id,
+          name: sh.name,
+          rank: sh.rank,
+          assignedListId: sh.assigned_list_id,
+          xpBuffMultiplier: Number(sh.xp_buff_multiplier || 1.10),
+          extractedAt: sh.extracted_at,
+        })),
         listGroups: mappedGroups,
         lists: mappedLists,
         quests: mappedQuests,
@@ -308,6 +326,12 @@ export default function App() {
         habits: mappedHabits,
         customRewards: mappedRewards,
         dailyLog: [],
+        loginStreak: profile.login_streak ?? 0,
+        lastLoginAt: profile.last_login_at,
+        streakShields: profile.streak_shields ?? 0,
+        restDaysRemaining: profile.rest_days_remaining ?? 1,
+        isOnRestDay: profile.is_on_rest_day ?? false,
+        streakRecoveryDeadline: profile.streak_recovery_deadline,
       });
 
       setExpandedGroups(mappedGroups.map(g => g.id));
@@ -322,6 +346,77 @@ export default function App() {
   }, []);
 
   useEffect(() => { refreshData(); }, [refreshData]);
+
+  const [hasCheckedIn, setHasCheckedIn] = useState(false);
+
+  const triggerSystemMessage = (msg: string) => {
+    setVictoryMessage(msg);
+    setTimeout(() => {
+      setVictoryMessage(null);
+    }, 4000);
+  };
+
+  useEffect(() => {
+    const runCheckIn = async () => {
+      if (getToken() && isLoggedIn && !hasCheckedIn) {
+        setHasCheckedIn(true);
+        try {
+          const res = await hunterAPI.dailyCheckIn();
+          if (res && res.success) {
+            if (!res.message.includes('Already checked in')) {
+              triggerSystemMessage(res.message);
+              refreshData();
+            }
+          }
+        } catch (e) {
+          console.error("Daily check-in error:", e);
+        }
+      }
+    };
+    runCheckIn();
+  }, [hasCheckedIn, isLoggedIn]);
+
+  const handleToggleRestDay = async () => {
+    try {
+      await hunterAPI.toggleRestDay();
+      refreshData();
+      triggerSystemMessage("Rest Day Status Toggled!");
+    } catch (e: any) {
+      alert(e.message || "Failed to toggle rest day.");
+    }
+  };
+
+  const handleBuyShield = async () => {
+    if (data.gold < 250) {
+      alert("Not enough gold! Shield costs 250.");
+      return;
+    }
+    try {
+      await hunterAPI.buyStreakShield();
+      refreshData();
+      triggerSystemMessage("Monarch's Protection Purchased!");
+    } catch (e: any) {
+      alert(e.message || "Failed to buy shield.");
+    }
+  };
+
+  const handleBuyRecovery = async () => {
+    if (data.gold < 500) {
+      alert("Not enough gold! Recovery Ticket costs 500.");
+      return;
+    }
+    const val = prompt("Enter your previous login streak count to restore:", "7");
+    if (!val) return;
+    const prev = parseInt(val, 10);
+    if (isNaN(prev) || prev <= 0) return;
+    try {
+      await hunterAPI.recoverStreak(prev);
+      refreshData();
+      triggerSystemMessage(`Streak Restored to ${prev} days!`);
+    } catch (e: any) {
+      alert(e.message || "Failed to recover streak.");
+    }
+  };
 
   // --- Auth Handlers ---
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -391,6 +486,13 @@ export default function App() {
         const boss = data.bosses.find(b => b.id === bossId);
         setVictoryMessage(`BOSS DEFEATED: ${boss?.name || 'Unknown'}`);
         setTimeout(() => setVictoryMessage(null), 5000);
+        
+        if (boss) {
+          setActiveExtractionBoss(boss);
+          setExtractionAttempts(3);
+          setExtractionStatus('idle');
+          setExtractionName(boss.name);
+        }
       }
       await refreshData();
     } catch (err: any) { console.error('Boss damage error:', err); }
@@ -401,6 +503,39 @@ export default function App() {
       await skillAPI.unlock(skillId);
       await refreshData();
     } catch (err: any) { console.error('Unlock skill error:', err); }
+  };
+
+  const allocateStatPoint = async (stat: string) => {
+    try {
+      await hunterAPI.allocateStatPoint(stat, 1);
+      await refreshData();
+    } catch (err: any) { console.error('Allocate stat point error:', err); }
+  };
+
+  const handleExtractShadow = async () => {
+    if (!activeExtractionBoss) return;
+    if (extractionAttempts <= 0) return;
+
+    setExtractionStatus('extracting');
+    
+    setTimeout(async () => {
+      const isSuccess = Math.random() < 0.70;
+      
+      if (isSuccess) {
+        try {
+          await hunterAPI.extractShadow(activeExtractionBoss.id, extractionName || activeExtractionBoss.name);
+          setExtractionStatus('success');
+          await refreshData();
+        } catch (err: any) {
+          console.error('Shadow extraction error:', err);
+          setExtractionStatus('fail');
+          setExtractionAttempts(prev => prev - 1);
+        }
+      } else {
+        setExtractionStatus('fail');
+        setExtractionAttempts(prev => prev - 1);
+      }
+    }, 1500);
   };
 
   const toggleEquip = async (itemId: string) => {
@@ -604,6 +739,7 @@ export default function App() {
           
           <div className="pt-4 pb-2 px-3 text-[10px] uppercase font-orbitron text-white/30 tracking-widest">RPG Systems</div>
           <SidebarItem icon={<UserIcon className="w-4 h-4" />} label="Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
+          <SidebarItem icon={<Dumbbell className="w-4 h-4" />} label="Gym Workout" active={activeTab === 'workout'} onClick={() => setActiveTab('workout')} />
           <SidebarItem icon={<Shield className="w-4 h-4" />} label="Boss Raids" active={activeTab === 'bosses'} onClick={() => setActiveTab('bosses')} />
           <SidebarItem icon={<Zap className="w-4 h-4" />} label="Skill Tree" active={activeTab === 'skills'} onClick={() => setActiveTab('skills')} />
           <SidebarItem icon={<Package className="w-4 h-4" />} label="Inventory" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
@@ -693,6 +829,7 @@ export default function App() {
               <div className="hidden md:block">
                 <h2 className="text-xl font-black">{
                   activeTab === 'profile' ? 'Hunter Profile' :
+                  activeTab === 'workout' ? 'Gym Workout Tracker' :
                   activeTab === 'quests' ? (
                     selectedListId === 'my-day' ? 'My Day' :
                     selectedListId === 'important' ? 'Important' :
@@ -772,6 +909,12 @@ export default function App() {
                       <div className="space-y-3">
                         <ProgressBar current={data.xp} max={xpNeeded} label="Experience (XP)" color="bg-accent-blue" />
                         <ProgressBar current={data.mana} max={data.maxMana} label="Mana (MP)" color="bg-accent-purple" />
+                        {data.statPoints > 0 && (
+                          <div className="flex items-center gap-2 text-xs font-orbitron text-accent-blue font-black animate-pulse mt-2">
+                            <Plus className="w-3.5 h-3.5 text-accent-blue shrink-0" />
+                            <span>{data.statPoints} STAT POINT(S) UNSPENT (CLICK "+" BELOW TO ALLOCATE)</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -787,6 +930,65 @@ export default function App() {
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>
+                </Card>
+              </div>
+
+              {/* Streak & Protection Controls */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="flex items-center justify-between p-5 relative overflow-hidden" glowColor={data.isOnRestDay ? "glow-purple" : "glow-blue"} glow>
+                  <div className="flex items-center gap-3">
+                    <Flame className={cn("w-8 h-8", data.isOnRestDay ? "text-white/40" : "text-red-500 animate-pulse")} />
+                    <div>
+                      <div className="text-[10px] font-orbitron text-white/40 tracking-wider">LOGIN STREAK</div>
+                      <div className="text-lg font-black font-orbitron text-white">{data.loginStreak ?? 0} DAYS</div>
+                    </div>
+                  </div>
+                  {data.isOnRestDay && (
+                    <span className="bg-accent-purple/10 text-accent-purple border border-accent-purple/20 text-[9px] font-orbitron font-bold px-2 py-0.5 rounded uppercase">
+                      Resting
+                    </span>
+                  )}
+                </Card>
+
+                <Card className="flex items-center justify-between p-5 relative overflow-hidden" glowColor="glow-cyan" glow>
+                  <div className="flex items-center gap-3">
+                    <Shield className="w-8 h-8 text-accent-cyan" />
+                    <div>
+                      <div className="text-[10px] font-orbitron text-white/40 tracking-wider">MONARCH'S SHIELDS</div>
+                      <div className="text-lg font-black font-orbitron text-accent-cyan">{data.streakShields ?? 0} ACTIVE</div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={handleBuyShield}
+                    className="px-3 py-1 bg-accent-cyan/15 hover:bg-accent-cyan/25 border border-accent-cyan/25 text-accent-cyan text-[10px] font-orbitron font-bold rounded-lg uppercase tracking-wider transition-all"
+                  >
+                    Buy (250g)
+                  </button>
+                </Card>
+
+                <Card className="flex items-center justify-between p-5 relative overflow-hidden" glowColor="glow-purple" glow>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-orbitron text-white/40 tracking-wider">WEEKLY REST DAY</span>
+                      <input 
+                        type="checkbox" 
+                        checked={data.isOnRestDay ?? false}
+                        onChange={handleToggleRestDay}
+                        className="w-8 h-4 rounded-full appearance-none bg-white/10 checked:bg-accent-purple border border-white/10 checked:border-accent-purple cursor-pointer transition-all relative before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:rounded-full before:bg-white before:top-0 before:left-0 checked:before:translate-x-3.5 before:transition-all"
+                      />
+                    </div>
+                    <div className="text-[10px] text-white/50">{data.restDaysRemaining ?? 1} REMAINING THIS WEEK</div>
+                  </div>
+                  {data.streakRecoveryDeadline && new Date(data.streakRecoveryDeadline).getTime() > Date.now() ? (
+                    <button 
+                      onClick={handleBuyRecovery}
+                      className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-[10px] font-orbitron font-bold rounded-lg uppercase tracking-wider transition-all animate-pulse"
+                    >
+                      Recover (500g)
+                    </button>
+                  ) : (
+                    <span className="text-[9px] font-mono text-white/20 uppercase">No Ticket</span>
+                  )}
                 </Card>
               </div>
 
@@ -854,11 +1056,64 @@ export default function App() {
                 </Card>
               </div>
 
+              {/* Shadow Army HUD */}
+              <Card className="border-accent-purple/20 relative overflow-hidden" glow>
+                <div className="absolute top-0 right-0 p-4">
+                  <Badge color="bg-accent-purple/20 text-accent-purple border-accent-purple/30">SHADOW MONARCH ARMY</Badge>
+                </div>
+                <div className="flex items-center gap-2 border-b border-white/10 pb-3 mb-4">
+                  <Shield className="w-5 h-5 text-accent-purple" />
+                  <h3 className="text-base font-black font-orbitron uppercase tracking-wider">Shadow Army</h3>
+                </div>
+                {data.shadows.length === 0 ? (
+                  <div className="py-8 text-center text-white/30 font-orbitron italic text-xs">
+                    "Your shadow army is empty. Defeat dungeon bosses and command them to 'Arise' to extract their shadows."
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {data.shadows.map(shadow => {
+                      const getBuffText = (name: string) => {
+                        const n = name.toLowerCase();
+                        if (n.includes('igris')) return '+10% Strength XP gains';
+                        if (n.includes('iron')) return '+10% Vitality XP gains';
+                        if (n.includes('tank')) return '+10% Endurance XP gains';
+                        if (n.includes('kaisel')) return '+10% Agility XP gains';
+                        if (n.includes('tusk')) return '+10% Intelligence XP gains';
+                        if (n.includes('beru')) return '+10% Sense XP gains';
+                        if (n.includes('greed')) return '+10% Quest Gold rewards';
+                        return '+10% Overall Quest XP gains';
+                      };
+                      return (
+                        <div key={shadow.id} className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl relative overflow-hidden group hover:border-accent-purple/30 transition-all">
+                          <div className="w-10 h-10 rounded-lg bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center text-accent-purple group-hover:bg-accent-purple/25 transition-all">
+                            <Flame className="w-5 h-5 text-accent-purple animate-pulse" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-white uppercase font-orbitron tracking-wide">{shadow.name}</div>
+                            <div className="text-[9px] text-accent-purple font-mono uppercase tracking-widest">{shadow.rank} Rank</div>
+                            <div className="text-[10px] text-white/50 mt-1 font-sans">{getBuffText(shadow.name)}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
                 {Object.entries(data.stats).map(([stat, value]) => (
-                  <Card key={stat} className="flex flex-col items-center py-6 hover:bg-white/10 transition-colors cursor-default group">
+                  <Card key={stat} className="flex flex-col items-center py-4 hover:bg-white/10 transition-colors cursor-default group relative">
                     <span className="text-[10px] font-orbitron text-white/40 mb-1 group-hover:text-accent-blue transition-colors">{stat}</span>
                     <span className="text-2xl font-black font-mono text-accent-blue">{value}</span>
+                    {data.statPoints > 0 && (
+                      <button 
+                        onClick={() => allocateStatPoint(stat)}
+                        className="mt-2 w-6 h-6 rounded-full bg-accent-blue/20 hover:bg-accent-blue text-accent-blue hover:text-white border border-accent-blue/30 flex items-center justify-center transition-all cursor-pointer glow-blue"
+                        title={`Allocate 1 point to ${stat}`}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </Card>
                 ))}
               </div>
@@ -1171,6 +1426,18 @@ export default function App() {
               </div>
             </motion.div>
           )}
+
+          {activeTab === 'workout' && (
+            <motion.div key="workout" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
+              <WorkoutTracker 
+                user={data} 
+                activeWorkout={activeWorkout} 
+                setActiveWorkout={setActiveWorkout} 
+                onRefreshUser={refreshData}
+                triggerNotification={triggerSystemMessage} 
+              />
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
 
@@ -1179,6 +1446,7 @@ export default function App() {
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<UserIcon />} label="Profile" />
           <NavButton active={activeTab === 'quests'} onClick={() => setActiveTab('quests')} icon={<Target />} label="Quests" />
+          <NavButton active={activeTab === 'workout'} onClick={() => setActiveTab('workout')} icon={<Dumbbell />} label="Workout" />
           <NavButton active={activeTab === 'habits'} onClick={() => setActiveTab('habits')} icon={<RotateCcw />} label="Habits" />
           <NavButton active={activeTab === 'rewards'} onClick={() => setActiveTab('rewards')} icon={<ShoppingCart />} label="Shop" />
           <NavButton active={activeTab === 'bosses'} onClick={() => setActiveTab('bosses')} icon={<AlertCircle />} label="Raids" />
@@ -1199,6 +1467,132 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Shadow Extraction Modal */}
+      {activeExtractionBoss && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md overflow-y-auto">
+          <Card className="w-full max-w-lg bg-[#0a0518] border-accent-purple/40 p-8 text-center relative overflow-hidden" glowColor="glow-purple" glow>
+            <div className="absolute top-0 right-0 p-4">
+              <button 
+                onClick={() => { if (extractionStatus !== 'extracting') setActiveExtractionBoss(null); }} 
+                className="text-white/40 hover:text-white transition-colors"
+                disabled={extractionStatus === 'extracting'}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="mx-auto w-16 h-16 rounded-full bg-accent-purple/10 border-2 border-accent-purple/40 flex items-center justify-center text-accent-purple shadow-[0_0_30px_rgba(139,92,246,0.3)] animate-pulse">
+                <Flame className="w-8 h-8" />
+              </div>
+
+              <div>
+                <h2 className="text-xl font-orbitron font-black text-accent-purple tracking-widest uppercase animate-pulse">Shadow Extraction</h2>
+                <p className="text-xs text-white/50 mt-1 uppercase font-mono tracking-widest">Target: {activeExtractionBoss.name}</p>
+              </div>
+
+              {extractionStatus === 'idle' && (
+                <div className="space-y-4">
+                  <p className="text-sm text-white/70 italic">
+                    "A shadow presence lingers from the defeated boss. Command the shadow to 'Arise' to bind it to your army."
+                  </p>
+                  <div className="text-left font-sans">
+                    <label className="block text-[10px] uppercase font-orbitron text-white/40 mb-1">Name your Shadow</label>
+                    <input 
+                      type="text" 
+                      value={extractionName} 
+                      onChange={e => setExtractionName(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-accent-purple outline-none font-orbitron text-white" 
+                      placeholder="e.g. Igris"
+                    />
+                  </div>
+                  <div className="text-xs text-accent-purple font-mono uppercase">
+                    Attempts Remaining: {extractionAttempts} / 3
+                  </div>
+                  <button 
+                    onClick={handleExtractShadow}
+                    className="w-full py-4 rounded-lg bg-accent-purple text-white font-orbitron font-black text-sm uppercase tracking-widest hover:bg-white hover:text-black transition-all shadow-[0_0_30px_rgba(139,92,246,0.5)] border border-accent-purple/30 cursor-pointer"
+                  >
+                    ARISE...
+                  </button>
+                </div>
+              )}
+
+              {extractionStatus === 'extracting' && (
+                <div className="py-8 space-y-4">
+                  <div className="w-12 h-12 border-4 border-accent-purple border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <div className="text-lg font-orbitron font-black text-accent-purple animate-pulse uppercase tracking-wider">
+                    " A R I S E . . . "
+                  </div>
+                  <p className="text-xs text-white/40 font-mono uppercase">Extracting shadow, please hold your concentration...</p>
+                </div>
+              )}
+
+              {extractionStatus === 'success' && (
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-orbitron font-black text-accent-blue uppercase tracking-widest">Extraction Successful</h3>
+                  <p className="text-sm text-white/70 italic">
+                    "The shadow has accepted your call. It is now bound to your shadow army."
+                  </p>
+                  <div className="p-4 bg-white/5 border border-accent-blue/30 rounded-xl max-w-sm mx-auto">
+                    <div className="text-lg font-orbitron font-bold text-accent-blue uppercase">{extractionName || activeExtractionBoss.name}</div>
+                    <div className="text-xs text-accent-purple font-mono uppercase mt-1">Bound to your Monarch Army</div>
+                  </div>
+                  <button 
+                    onClick={() => setActiveExtractionBoss(null)}
+                    className="mt-4 px-6 py-2 bg-accent-blue text-white rounded font-orbitron font-bold text-xs hover:bg-white hover:text-black transition-all cursor-pointer glow-blue"
+                  >
+                    CLOSE GATE
+                  </button>
+                </div>
+              )}
+
+              {extractionStatus === 'fail' && (
+                <div className="space-y-4">
+                  <h3 className="text-xl font-orbitron font-black text-red-500 uppercase tracking-widest">Extraction Failed</h3>
+                  {extractionAttempts > 0 ? (
+                    <>
+                      <p className="text-sm text-white/70">
+                        The shadow resists your command. Do you wish to try again?
+                      </p>
+                      <div className="text-xs text-accent-purple font-mono uppercase">
+                        Attempts Remaining: {extractionAttempts} / 3
+                      </div>
+                      <div className="flex gap-4">
+                        <button 
+                          onClick={() => setExtractionStatus('idle')}
+                          className="flex-1 py-3 bg-accent-purple/20 hover:bg-accent-purple text-accent-purple hover:text-white border border-accent-purple/30 rounded font-orbitron font-bold text-xs transition-all cursor-pointer"
+                        >
+                          TRY AGAIN
+                        </button>
+                        <button 
+                          onClick={() => setActiveExtractionBoss(null)}
+                          className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white/50 hover:text-white rounded font-orbitron font-bold text-xs transition-all cursor-pointer"
+                        >
+                          GIVE UP
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-white/70">
+                        The shadow has dissolved into the darkness. The extraction is lost.
+                      </p>
+                      <button 
+                        onClick={() => setActiveExtractionBoss(null)}
+                        className="mt-4 px-6 py-2 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 rounded font-orbitron font-bold text-xs transition-all cursor-pointer"
+                      >
+                        CLOSE GATE
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Quest Modal */}
       {showQuestModal && (

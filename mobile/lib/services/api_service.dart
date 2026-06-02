@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiService {
   final Dio _dio = Dio();
   // TODO: Replace with your backend URL (e.g., http://192.168.1.XX:3001)
-  static const String baseUrl = 'http://localhost:3001';
+  static const String baseUrl = 'http://10.30.15.165:3001';
 
   ApiService() {
     _dio.options.baseUrl = baseUrl;

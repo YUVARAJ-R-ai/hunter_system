@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hunter_system_mobile/core/theme.dart';
 import 'package:hunter_system_mobile/services/supabase_service.dart';
+import 'package:hunter_system_mobile/providers/hunter_provider.dart';
 
-class RewardsPage extends StatelessWidget {
+class RewardsPage extends ConsumerWidget {
   final List<Map<String, dynamic>> rewards;
   final int gold;
   final VoidCallback onRefresh;
@@ -22,12 +24,12 @@ class RewardsPage extends StatelessWidget {
     if (gold < cost) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Row(
               children: [
-                const Icon(LucideIcons.alertCircle, color: AppTheme.goldAccent, size: 18),
-                const SizedBox(width: 12),
-                const Text('Not enough gold!'),
+                Icon(LucideIcons.alertCircle, color: AppTheme.goldAccent, size: 18),
+                SizedBox(width: 12),
+                Text('Not enough gold!'),
               ],
             ),
             backgroundColor: AppTheme.cardDark,
@@ -138,9 +140,102 @@ class RewardsPage extends StatelessWidget {
     );
   }
 
+  Future<void> _buyShield(BuildContext context, WidgetRef ref) async {
+    if (gold < 250) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not enough gold for Monarch\'s Protection!'), backgroundColor: AppTheme.dangerRed),
+      );
+      return;
+    }
+
+    try {
+      await ref.read(hunterDataProvider.notifier).buyStreakShield();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Monarch\'s Protection Shield purchased!'), backgroundColor: AppTheme.sRankGreen),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.dangerRed),
+        );
+      }
+    }
+  }
+
+  Future<void> _buyRecoveryTicket(BuildContext context, WidgetRef ref) async {
+    if (gold < 500) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not enough gold for Elixir of Rejuvenation!'), backgroundColor: AppTheme.dangerRed),
+      );
+      return;
+    }
+
+    final prevStreakController = TextEditingController(text: '7');
+    final prevStreak = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardDark,
+        title: Text('RESTORE STREAK', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Enter your previous login streak count to restore:', style: GoogleFonts.outfit(color: Colors.white70)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: prevStreakController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'PREVIOUS STREAK'),
+              style: GoogleFonts.outfit(color: Colors.white),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('CANCEL', style: GoogleFonts.spaceGrotesk(color: Colors.white30)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final val = int.tryParse(prevStreakController.text) ?? 1;
+              Navigator.pop(context, val);
+            },
+            child: const Text('RESTORE'),
+          ),
+        ],
+      ),
+    );
+
+    if (prevStreak != null && context.mounted) {
+      try {
+        await ref.read(hunterDataProvider.notifier).recoverStreak(prevStreak);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Streak restored to $prevStreak days!'), backgroundColor: AppTheme.sRankGreen),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error restoring streak: $e'), backgroundColor: AppTheme.dangerRed),
+          );
+        }
+      }
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final available = rewards.where((r) => r['purchased'] != true).toList();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hunterAsync = ref.watch(hunterDataProvider);
+    final hunterData = hunterAsync.value;
+
+    final bool hasActiveRecovery = hunterData != null &&
+        hunterData.streakRecoveryDeadline != null &&
+        hunterData.streakRecoveryDeadline!.isAfter(DateTime.now());
+
+    final availableCustom = rewards.where((r) => r['purchased'] != true).toList();
     final purchased = rewards.where((r) => r['purchased'] == true).toList();
 
     return SafeArea(
@@ -198,41 +293,138 @@ class RewardsPage extends StatelessWidget {
           const SizedBox(height: 16),
 
           Expanded(
-            child: rewards.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(LucideIcons.shoppingCart, size: 48, color: Colors.white.withOpacity(0.1)),
-                        const SizedBox(height: 16),
-                        Text('No rewards yet', style: GoogleFonts.outfit(fontSize: 16, color: Colors.white30)),
-                      ],
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              children: [
+                // SYSTEM ITEMS
+                Text('SYSTEM ITEMS', style: GoogleFonts.spaceGrotesk(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 3, color: Colors.white24)),
+                const SizedBox(height: 12),
+                
+                // Monarch's Protection Shield card
+                _buildSystemShopCard(
+                  context: context,
+                  title: 'MONARCH\'S PROTECTION',
+                  desc: 'Consumable Shield. Protects login streak once.',
+                  cost: 250,
+                  icon: LucideIcons.shieldAlert,
+                  iconColor: AppTheme.neonCyan,
+                  onBuy: () => _buyShield(context, ref),
+                ),
+                const SizedBox(height: 10),
+
+                // Elixir of Rejuvenation ticket card
+                _buildSystemShopCard(
+                  context: context,
+                  title: 'ELIXIR OF REJUVENATION',
+                  desc: 'Streak Recovery Ticket. Restore broken streak within 24h.',
+                  cost: 500,
+                  icon: LucideIcons.droplet,
+                  iconColor: AppTheme.dangerRed,
+                  enabled: hasActiveRecovery,
+                  onBuy: () => _buyRecoveryTicket(context, ref),
+                ),
+                const SizedBox(height: 20),
+
+                Text('CUSTOM REWARDS', style: GoogleFonts.spaceGrotesk(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 3, color: Colors.white24)),
+                const SizedBox(height: 12),
+
+                if (availableCustom.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: Text('No custom rewards added.', style: GoogleFonts.outfit(color: Colors.white24, fontSize: 13)),
                     ),
                   )
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    children: [
-                      if (available.isNotEmpty) ...[
-                        ...available.asMap().entries.map((entry) =>
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _buildRewardCard(context, entry.value)
-                                .animate()
-                                .fadeIn(delay: Duration(milliseconds: 80 * entry.key), duration: 300.ms),
-                          ),
-                        ),
-                      ],
-                      if (purchased.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text('PURCHASED', style: GoogleFonts.spaceGrotesk(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 3, color: Colors.white24)),
-                        const SizedBox(height: 12),
-                        ...purchased.map((r) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _buildPurchasedCard(r),
-                        )),
-                      ],
-                    ],
-                  ),
+                else
+                  ...availableCustom.map((r) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _buildRewardCard(context, r),
+                      )),
+
+                if (purchased.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Text('PURCHASED', style: GoogleFonts.spaceGrotesk(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 3, color: Colors.white24)),
+                  const SizedBox(height: 12),
+                  ...purchased.map((r) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _buildPurchasedCard(r),
+                      )),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSystemShopCard({
+    required BuildContext context,
+    required String title,
+    required String desc,
+    required int cost,
+    required IconData icon,
+    required Color iconColor,
+    required VoidCallback onBuy,
+    bool enabled = true,
+  }) {
+    final canAfford = gold >= cost && enabled;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.cardDark,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: canAfford ? AppTheme.goldAccent.withOpacity(0.15) : Colors.white.withOpacity(0.04)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(enabled ? 0.1 : 0.02),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: enabled ? iconColor : Colors.white12),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: GoogleFonts.spaceGrotesk(fontSize: 13, fontWeight: FontWeight.bold, color: enabled ? Colors.white : Colors.white24)),
+                const SizedBox(height: 2),
+                Text(desc, style: GoogleFonts.outfit(fontSize: 10, color: enabled ? Colors.white38 : Colors.white12)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(LucideIcons.coins, size: 12, color: enabled ? AppTheme.goldAccent : Colors.white12),
+                    const SizedBox(width: 4),
+                    Text(cost.toString(), style: GoogleFonts.spaceGrotesk(fontSize: 11, fontWeight: FontWeight.bold, color: enabled ? AppTheme.goldAccent : Colors.white12)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: canAfford ? onBuy : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: canAfford ? AppTheme.goldAccent.withOpacity(0.15) : Colors.white.withOpacity(0.02),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: canAfford ? AppTheme.goldAccent.withOpacity(0.3) : Colors.white10),
+              ),
+              child: Text(
+                enabled ? 'BUY' : 'LOCKED',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                  color: canAfford ? AppTheme.goldAccent : Colors.white12,
+                ),
+              ),
+            ),
           ),
         ],
       ),

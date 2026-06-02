@@ -15,6 +15,7 @@ import 'package:hunter_system_mobile/features/quests/pages/quests_page.dart';
 import 'package:hunter_system_mobile/features/bosses/pages/bosses_page.dart';
 import 'package:hunter_system_mobile/features/inventory/pages/inventory_page.dart';
 import 'package:hunter_system_mobile/features/rewards/pages/rewards_page.dart';
+import 'package:hunter_system_mobile/features/workout/pages/workout_tracker_page.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -31,6 +32,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _currentIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _runDailyCheckIn();
+    });
   }
 
   @override
@@ -108,6 +112,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final pages = [
       _buildProfileTab(data),
       QuestsPage(quests: data.quests, onRefresh: _refresh),
+      const WorkoutTrackerPage(),
       BossesPage(bosses: data.bosses, onRefresh: _refresh),
       InventoryPage(inventory: data.inventory, onRefresh: _refresh),
       RewardsPage(rewards: data.rewards, gold: data.gold, onRefresh: _refresh),
@@ -150,12 +155,46 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               _buildHeader(data).animate().fadeIn(duration: 400.ms).slideX(begin: -0.05),
               const SizedBox(height: 24),
 
+              // Streak & Mercy Protection Card
+              _buildStreakStatusCard(data).animate().fadeIn(delay: 100.ms, duration: 400.ms),
+              const SizedBox(height: 16),
+
               // Rank Card
               _buildRankCard(data, rank, xpProgress, xpNeeded)
                   .animate()
                   .fadeIn(delay: 150.ms, duration: 400.ms)
                   .scale(begin: const Offset(0.96, 0.96), curve: Curves.easeOutBack),
               const SizedBox(height: 24),
+
+              // Stat points unspent banner
+              if (data.statPoints > 0) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(LucideIcons.sparkles, size: 16, color: AppTheme.primaryBlue)
+                          .animate(onPlay: (c) => c.repeat())
+                          .shimmer(duration: 1200.ms),
+                      const SizedBox(width: 10),
+                      Text(
+                        '${data.statPoints} UNSPENT STAT POINTS AVAILABLE!',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.primaryBlue,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // Stats Grid
               _buildStatsGrid(data)
@@ -180,7 +219,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               _buildQuickStats(data)
                   .animate()
                   .fadeIn(delay: 600.ms, duration: 400.ms),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
+
+              // Shadow Army
+              _buildShadowArmySection(data)
+                  .animate()
+                  .fadeIn(delay: 650.ms, duration: 400.ms),
+              const SizedBox(height: 28),
 
               // Logout
               _buildLogoutButton(),
@@ -315,22 +360,211 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
+  Future<void> _allocatePoint(String stat) async {
+    try {
+      await ref.read(hunterDataProvider.notifier).allocateStatPoint(stat);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Allocation failed: $e'),
+            backgroundColor: AppTheme.dangerRed,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildStatsGrid(HunterData data) {
     final stats = data.stats;
+    final hasPoints = data.statPoints > 0;
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 3,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 0.95,
+      childAspectRatio: hasPoints ? 0.76 : 0.95,
       children: [
-        StatTile(icon: LucideIcons.swords, label: 'STR', value: stats['STR'] ?? 0, color: const Color(0xFFEF4444)),
-        StatTile(icon: LucideIcons.brain, label: 'INT', value: stats['INT'] ?? 0, color: const Color(0xFF3B82F6)),
-        StatTile(icon: LucideIcons.zap, label: 'AGI', value: stats['AGI'] ?? 0, color: const Color(0xFFF59E0B)),
-        StatTile(icon: LucideIcons.heart, label: 'VIT', value: stats['VIT'] ?? 0, color: const Color(0xFF10B981)),
-        StatTile(icon: LucideIcons.shield, label: 'END', value: stats['END'] ?? 0, color: const Color(0xFF8B5CF6)),
-        StatTile(icon: LucideIcons.eye, label: 'SEN', value: stats['SEN'] ?? 0, color: const Color(0xFFEC4899)),
+        StatTile(
+          icon: LucideIcons.swords, 
+          label: 'STR', 
+          value: stats['STR'] ?? 0, 
+          color: const Color(0xFFEF4444),
+          onAdd: hasPoints ? () => _allocatePoint('STR') : null,
+        ),
+        StatTile(
+          icon: LucideIcons.brain, 
+          label: 'INT', 
+          value: stats['INT'] ?? 0, 
+          color: const Color(0xFF3B82F6),
+          onAdd: hasPoints ? () => _allocatePoint('INT') : null,
+        ),
+        StatTile(
+          icon: LucideIcons.zap, 
+          label: 'AGI', 
+          value: stats['AGI'] ?? 0, 
+          color: const Color(0xFFF59E0B),
+          onAdd: hasPoints ? () => _allocatePoint('AGI') : null,
+        ),
+        StatTile(
+          icon: LucideIcons.heart, 
+          label: 'VIT', 
+          value: stats['VIT'] ?? 0, 
+          color: const Color(0xFF10B981),
+          onAdd: hasPoints ? () => _allocatePoint('VIT') : null,
+        ),
+        StatTile(
+          icon: LucideIcons.shield, 
+          label: 'END', 
+          value: stats['END'] ?? 0, 
+          color: const Color(0xFF8B5CF6),
+          onAdd: hasPoints ? () => _allocatePoint('END') : null,
+        ),
+        StatTile(
+          icon: LucideIcons.eye, 
+          label: 'SEN', 
+          value: stats['SEN'] ?? 0, 
+          color: const Color(0xFFEC4899),
+          onAdd: hasPoints ? () => _allocatePoint('SEN') : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShadowArmySection(HunterData data) {
+    final shadows = data.shadows;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(LucideIcons.shield, size: 16, color: AppTheme.neonPurple),
+            const SizedBox(width: 8),
+            Text(
+              'SHADOW ARMY',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 3,
+                color: AppTheme.neonPurple,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        if (shadows.isEmpty)
+          HunterCard(
+            glowColor: AppTheme.neonPurple.withOpacity(0.2),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Column(
+                  children: [
+                    Icon(LucideIcons.ghost, size: 32, color: Colors.white.withOpacity(0.15)),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No shadows extracted yet',
+                      style: GoogleFonts.outfit(fontSize: 14, color: Colors.white30),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Defeat dungeon bosses to recruit shadows!',
+                      style: GoogleFonts.outfit(fontSize: 12, color: Colors.white12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 2.1,
+            ),
+            itemCount: shadows.length,
+            itemBuilder: (context, index) {
+              final shadow = shadows[index];
+              final name = (shadow['name'] ?? 'Shadow').toString().toUpperCase();
+              final rank = (shadow['rank'] ?? 'Elite').toString();
+              
+              String buffText = '+10% Overall Quest XP';
+              final n = name.toLowerCase();
+              if (n.contains('igris')) buffText = '+10% Strength XP';
+              if (n.contains('iron')) buffText = '+10% Vitality XP';
+              if (n.contains('tank')) buffText = '+10% Endurance XP';
+              if (n.contains('kaisel')) buffText = '+10% Agility XP';
+              if (n.contains('tusk')) buffText = '+10% Intelligence XP';
+              if (n.contains('beru')) buffText = '+10% Sense XP';
+              if (n.contains('greed')) buffText = '+10% Quest Gold';
+
+              return Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardDark,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.neonPurple.withOpacity(0.15)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.neonPurple.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(LucideIcons.flame, size: 16, color: AppTheme.neonPurple),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            name,
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '$rank Rank'.toUpperCase(),
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 8,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.neonPurple,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            buffText,
+                            style: GoogleFonts.outfit(
+                              fontSize: 9,
+                              color: Colors.white38,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
       ],
     );
   }
@@ -657,9 +891,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             children: [
               _buildNavItem(0, LucideIcons.layoutGrid, 'Profile'),
               _buildNavItem(1, LucideIcons.scroll, 'Quests'),
-              _buildNavItem(2, LucideIcons.shield, 'Bosses'),
-              _buildNavItem(3, LucideIcons.backpack, 'Inventory'),
-              _buildNavItem(4, LucideIcons.shoppingCart, 'Shop'),
+              _buildNavItem(2, LucideIcons.dumbbell, 'Workout'),
+              _buildNavItem(3, LucideIcons.shield, 'Bosses'),
+              _buildNavItem(4, LucideIcons.backpack, 'Inventory'),
+              _buildNavItem(5, LucideIcons.shoppingCart, 'Shop'),
             ],
           ),
         ),
@@ -680,7 +915,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: isActive ? AppTheme.primaryBlue.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
@@ -705,6 +940,136 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _runDailyCheckIn() async {
+    try {
+      final res = await ref.read(hunterDataProvider.notifier).dailyCheckIn();
+      if (res['success'] == true && mounted) {
+        final msg = res['message'] as String?;
+        if (msg != null && msg.isNotEmpty && !msg.contains('Already checked in')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              backgroundColor: AppTheme.primaryBlue,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Quietly ignore or log
+    }
+  }
+
+  Widget _buildStreakStatusCard(HunterData data) {
+    return HunterCard(
+      glowColor: data.isOnRestDay ? AppTheme.neonPurple : AppTheme.primaryBlue,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Streak Info
+          Expanded(
+            child: Row(
+              children: [
+                Icon(
+                  LucideIcons.flame,
+                  color: data.isOnRestDay ? Colors.white54 : AppTheme.dangerRed,
+                  size: 24,
+                ).animate(target: data.isOnRestDay ? 0 : 1, onPlay: (c) => c.repeat()).shimmer(duration: 1500.ms),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'STREAK',
+                      style: GoogleFonts.spaceGrotesk(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white30, letterSpacing: 1),
+                    ),
+                    Text(
+                      '${data.loginStreak} DAYS',
+                      style: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Shields info
+          Expanded(
+            child: Row(
+              children: [
+                const Icon(LucideIcons.shield, color: AppTheme.neonCyan, size: 24),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'SHIELDS',
+                      style: GoogleFonts.spaceGrotesk(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white30, letterSpacing: 1),
+                    ),
+                    Text(
+                      '${data.streakShields} ACTIVE',
+                      style: GoogleFonts.spaceGrotesk(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.neonCyan),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Rest Day Toggle
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'REST DAY',
+                    style: GoogleFonts.spaceGrotesk(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white38),
+                  ),
+                  const SizedBox(width: 4),
+                  SizedBox(
+                    height: 20,
+                    width: 32,
+                    child: Switch(
+                      value: data.isOnRestDay,
+                      activeColor: AppTheme.neonPurple,
+                      onChanged: (val) async {
+                        try {
+                          await ref.read(hunterDataProvider.notifier).toggleRestDay();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(val ? 'Rest day activated!' : 'Rest day deactivated!'),
+                                backgroundColor: AppTheme.neonPurple,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: AppTheme.dangerRed,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                '${data.restDaysRemaining} LEFT THIS WEEK',
+                style: GoogleFonts.outfit(fontSize: 8, color: Colors.white30),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

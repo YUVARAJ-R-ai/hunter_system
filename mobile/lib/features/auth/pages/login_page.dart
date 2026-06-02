@@ -6,6 +6,11 @@ import 'package:hunter_system_mobile/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hunter_system_mobile/core/config.dart';
+import 'package:hunter_system_mobile/services/api_service.dart';
+import 'package:hunter_system_mobile/features/dashboard/pages/dashboard_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -49,41 +54,81 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     }
     setState(() => _isLoading = true);
     try {
-      if (_isRegister) {
-        await SupabaseService.client.auth.signUp(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-          data: {
-            'username': _usernameController.text.trim().isNotEmpty
-                ? _usernameController.text.trim()
-                : 'Hunter',
-          },
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(LucideIcons.checkCircle, color: AppTheme.sRankGreen, size: 18),
-                  const SizedBox(width: 12),
-                  const Text('Awakening complete! Check your email.'),
-                ],
-              ),
-              backgroundColor: AppTheme.cardDark,
-            ),
+      if (AppConfig.useSupabase) {
+        if (_isRegister) {
+          await SupabaseService.client.auth.signUp(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+            data: {
+              'username': _usernameController.text.trim().isNotEmpty
+                  ? _usernameController.text.trim()
+                  : 'Hunter',
+            },
           );
-          setState(() => _isRegister = false);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(LucideIcons.checkCircle, color: AppTheme.sRankGreen, size: 18),
+                    const SizedBox(width: 12),
+                    const Text('Awakening complete! Check your email.'),
+                  ],
+                ),
+                backgroundColor: AppTheme.cardDark,
+              ),
+            );
+            setState(() => _isRegister = false);
+          }
+        } else {
+          await SupabaseService.client.auth.signInWithPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
         }
       } else {
-        await SupabaseService.client.auth.signInWithPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
+        // Node backend fallback
+        final apiService = ApiService();
+        if (_isRegister) {
+          final response = await apiService.register(
+            _emailController.text.trim(),
+            _passwordController.text.trim(),
+            _usernameController.text.trim().isNotEmpty
+                ? _usernameController.text.trim()
+                : 'Hunter',
+          );
+          final token = response.data['token'];
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_token', token);
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const DashboardPage()),
+            );
+          }
+        } else {
+          final response = await apiService.login(
+            _emailController.text.trim(),
+            _passwordController.text.trim(),
+          );
+          final token = response.data['token'];
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_token', token);
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const DashboardPage()),
+            );
+          }
+        }
       }
     } on AuthException catch (e) {
       _showError(e.message);
     } catch (e) {
-      _showError(e.toString());
+      if (e is DioException) {
+        final errorMsg = e.response?.data['error'] ?? e.message ?? 'Network error';
+        _showError(errorMsg.toString());
+      } else {
+        _showError(e.toString());
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

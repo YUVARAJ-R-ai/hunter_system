@@ -106,6 +106,15 @@ export interface Reward {
   purchased: boolean;
 }
 
+export interface Shadow {
+  id: string;
+  name: string;
+  rank: string;
+  assignedListId?: string;
+  xpBuffMultiplier: number;
+  extractedAt: string;
+}
+
 export interface HunterData {
   uid: string;
   username: string;
@@ -115,6 +124,9 @@ export interface HunterData {
   mana: number;
   maxMana: number;
   stats: Stats;
+  statPoints: number;
+  hp: number;
+  shadows: Shadow[];
   listGroups: ListGroup[];
   lists: List[];
   quests: Quest[];
@@ -125,4 +137,10 @@ export interface HunterData {
   habits: Habit[];
   customRewards: Reward[];
   dailyLog: { date: string; questId: string }[];
+  loginStreak?: number;
+  lastLoginAt?: string;
+  streakShields?: number;
+  restDaysRemaining?: number;
+  isOnRestDay?: boolean;
+  streakRecoveryDeadline?: string;
 }

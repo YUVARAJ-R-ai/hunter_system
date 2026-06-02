@@ -7,6 +7,7 @@ class StatTile extends StatelessWidget {
   final String label;
   final int value;
   final Color? color;
+  final VoidCallback? onAdd;
 
   const StatTile({
     super.key,
@@ -14,13 +15,14 @@ class StatTile extends StatelessWidget {
     required this.label,
     required this.value,
     this.color,
+    this.onAdd,
   });
 
   @override
   Widget build(BuildContext context) {
     final effectiveColor = color ?? AppTheme.primaryBlue;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
         color: AppTheme.cardDark,
         borderRadius: BorderRadius.circular(14),
@@ -49,11 +51,26 @@ class StatTile extends StatelessWidget {
           Text(
             value.toString().padLeft(2, '0'),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
               color: Colors.white,
             ),
           ),
+          if (onAdd != null) ...[
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: onAdd,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: effectiveColor.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: effectiveColor.withOpacity(0.3), width: 1),
+                ),
+                child: Icon(Icons.add, size: 10, color: effectiveColor),
+              ),
+            ),
+          ],
         ],
       ),
     );
