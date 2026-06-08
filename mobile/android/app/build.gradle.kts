@@ -25,7 +25,7 @@ android {
         applicationId = "com.hunter.system.hunter_system_mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21 // explicitly set minSdk to support desugaring properly if needed (or keep flutter.minSdkVersion if it is >= 21)
+        minSdk = flutter.minSdkVersion // explicitly set minSdk to support desugaring properly if needed (or keep flutter.minSdkVersion if it is >= 21)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -45,5 +45,5 @@ flutter {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
