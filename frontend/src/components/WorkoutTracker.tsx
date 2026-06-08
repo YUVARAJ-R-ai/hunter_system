@@ -30,6 +30,11 @@ export default function WorkoutTracker({
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState('ALL');
+  const [selectedEquipment, setSelectedEquipment] = useState('ALL');
+  const [selectedExerciseForDetails, setSelectedExerciseForDetails] = useState<any>(null);
+
+  const bodyParts = ['ALL', 'Chest', 'Back', 'Shoulders', 'Upper arms', 'Lower arms', 'Upper legs', 'Lower legs', 'Waist', 'Cardio', 'Neck'];
+  const equipments = ['ALL', 'Body weight', 'Barbell', 'Dumbbell', 'Cable', 'Band', 'Kettlebell', 'Machine', 'Plate'];
 
   // New Template Modal state
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
@@ -403,14 +408,25 @@ export default function WorkoutTracker({
 
   const filteredExercises = exercises.filter(item => {
     const nameMatches = (item.name || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const muscleMatches = selectedMuscle === 'ALL' || item.target_muscle.toUpperCase() === selectedMuscle.toUpperCase();
-    return nameMatches && muscleMatches;
+    
+    const targetLower = (item.target_muscle || '').toLowerCase();
+    const bodyPartLower = (item.body_part || '').toLowerCase();
+    const equipmentLower = (item.equipment || '').toLowerCase();
+    
+    const muscleMatches = selectedMuscle === 'ALL' || 
+      targetLower === selectedMuscle.toLowerCase() ||
+      bodyPartLower === selectedMuscle.toLowerCase();
+      
+    const equipmentMatches = selectedEquipment === 'ALL' || 
+      equipmentLower === selectedEquipment.toLowerCase();
+      
+    return nameMatches && muscleMatches && equipmentMatches;
   });
 
   const formatSeconds = (totalSec: number) => {
     const mins = Math.floor(totalSec / 60);
     const secs = totalSec % 60;
-    return `${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -528,54 +544,74 @@ export default function WorkoutTracker({
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <input 
-                type="text" 
-                placeholder="Search exercise..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="flex-1 bg-[#120f26]/60 border border-white/5 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-accent-blue/40"
-              />
-              <select 
-                value={selectedMuscle}
-                onChange={e => setSelectedMuscle(e.target.value)}
-                className="bg-[#120f26]/60 border border-white/5 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-accent-blue/40"
-              >
-                {muscles.map(m => (
-                  <option key={m} value={m} className="bg-[#0a0518]">{m}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
-              {filteredExercises.map((ex) => (
-                <div 
-                  key={ex.id}
-                  className="bg-[#120f26]/60 border border-white/5 p-4 rounded-xl flex items-start justify-between gap-4"
+                <input 
+                  type="text" 
+                  placeholder="Search exercise..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="flex-1 bg-[#120f26]/60 border border-white/5 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-accent-blue/40"
+                />
+                <select 
+                  value={selectedMuscle}
+                  onChange={e => setSelectedMuscle(e.target.value)}
+                  className="bg-[#120f26]/60 border border-white/5 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-accent-blue/40"
                 >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-orbitron font-bold text-xs text-white uppercase">{ex.name}</span>
-                      <span className="bg-accent-blue/10 text-accent-blue border border-accent-blue/20 text-[8px] font-orbitron px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        {ex.target_muscle}
-                      </span>
+                  <option value="ALL">All Muscles</option>
+                  {muscles.filter(m => m !== 'ALL').map(m => (
+                    <option key={m} value={m} className="bg-[#0a0518]">{m}</option>
+                  ))}
+                </select>
+                <select 
+                  value={selectedEquipment}
+                  onChange={e => setSelectedEquipment(e.target.value)}
+                  className="bg-[#120f26]/60 border border-white/5 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-accent-blue/40"
+                >
+                  <option value="ALL">All Equipment</option>
+                  {equipments.filter(eq => eq !== 'ALL').map(eq => (
+                    <option key={eq} value={eq} className="bg-[#0a0518]">{eq}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
+                {filteredExercises.map((ex) => (
+                  <div 
+                    key={ex.id}
+                    onClick={() => setSelectedExerciseForDetails(ex)}
+                    className="bg-[#120f26]/60 border border-white/5 p-4 rounded-xl flex items-start justify-between gap-4 cursor-pointer hover:border-accent-blue/20 transition-all"
+                  >
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-orbitron font-bold text-xs text-white uppercase">{ex.name}</span>
+                        <span className="bg-accent-blue/10 text-accent-blue border border-accent-blue/20 text-[8px] font-orbitron px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          {ex.target_muscle}
+                        </span>
+                        {ex.equipment && (
+                          <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 text-[8px] font-orbitron px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            {ex.equipment}
+                          </span>
+                        )}
+                      </div>
+                      {ex.description && (
+                        <p className="text-[10px] text-white/40 mt-1.5 leading-normal line-clamp-2">{ex.description}</p>
+                      )}
                     </div>
-                    {ex.description && (
-                      <p className="text-[10px] text-white/40 mt-1.5 leading-normal">{ex.description}</p>
+                    {activeWorkout && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddExerciseToActive(ex);
+                        }}
+                        className="px-2 py-1 bg-accent-blue/10 border border-accent-blue/20 hover:bg-accent-blue/25 text-accent-blue text-[9px] font-orbitron font-bold rounded-lg uppercase tracking-wider transition-all"
+                      >
+                        Add +
+                      </button>
                     )}
                   </div>
-                  {activeWorkout && (
-                    <button 
-                      onClick={() => handleAddExerciseToActive(ex)}
-                      className="px-2 py-1 bg-accent-blue/10 border border-accent-blue/20 hover:bg-accent-blue/25 text-accent-blue text-[9px] font-orbitron font-bold rounded-lg uppercase tracking-wider transition-all"
-                    >
-                      Add +
-                    </button>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {subTab === 'history' && (
           <div className="space-y-6">
@@ -915,6 +951,109 @@ export default function WorkoutTracker({
             >
               CREATE MOVEMENT
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Exercise Detail Modal */}
+      {selectedExerciseForDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-[#0a0518] border border-white/10 rounded-2xl p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex justify-between items-start border-b border-white/5 pb-2">
+              <div>
+                <h3 className="font-orbitron font-black text-md text-white uppercase tracking-wider">
+                  {selectedExerciseForDetails.name}
+                </h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedExerciseForDetails.target_muscle && (
+                    <span className="bg-accent-blue/10 text-accent-blue border border-accent-blue/20 text-[9px] font-orbitron px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      {selectedExerciseForDetails.target_muscle}
+                    </span>
+                  )}
+                  {selectedExerciseForDetails.body_part && selectedExerciseForDetails.body_part !== selectedExerciseForDetails.target_muscle && (
+                    <span className="bg-accent-purple/10 text-accent-purple border border-accent-purple/20 text-[9px] font-orbitron px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      {selectedExerciseForDetails.body_part}
+                    </span>
+                  )}
+                  {selectedExerciseForDetails.equipment && (
+                    <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 text-[9px] font-orbitron px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      {selectedExerciseForDetails.equipment}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedExerciseForDetails(null)} 
+                className="text-white/40 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {selectedExerciseForDetails.gif_url && (
+              <div className="flex justify-center bg-white/5 rounded-xl p-4 border border-white/5">
+                <img 
+                  src={selectedExerciseForDetails.gif_url} 
+                  alt={selectedExerciseForDetails.name}
+                  className="max-h-[220px] object-contain rounded-lg"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+
+            {selectedExerciseForDetails.description && selectedExerciseForDetails.description !== 'No description provided.' && (
+              <div className="space-y-1">
+                <h4 className="text-[10px] font-orbitron font-bold text-white/40 uppercase tracking-widest">Description</h4>
+                <p className="text-xs text-white/70 leading-normal">{selectedExerciseForDetails.description}</p>
+              </div>
+            )}
+
+            {selectedExerciseForDetails.instructions && (() => {
+              let instructions: string[] = [];
+              if (Array.isArray(selectedExerciseForDetails.instructions)) {
+                instructions = selectedExerciseForDetails.instructions;
+              } else if (typeof selectedExerciseForDetails.instructions === 'string' && selectedExerciseForDetails.instructions.trim()) {
+                try {
+                  const parsed = JSON.parse(selectedExerciseForDetails.instructions);
+                  if (Array.isArray(parsed)) instructions = parsed;
+                  else instructions = [selectedExerciseForDetails.instructions];
+                } catch (_) {
+                  instructions = [selectedExerciseForDetails.instructions];
+                }
+              }
+              
+              if (instructions.length === 0) return null;
+              
+              return (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-orbitron font-bold text-white/40 uppercase tracking-widest">Instructions</h4>
+                  <ol className="space-y-2">
+                    {instructions.map((step, idx) => (
+                      <li key={idx} className="flex gap-3 text-xs text-white/80 leading-normal">
+                        <span className="flex-shrink-0 w-5 h-5 bg-accent-blue/10 border border-accent-blue/20 rounded-full flex items-center justify-center text-[10px] font-orbitron text-accent-blue font-bold">
+                          {idx + 1}
+                        </span>
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              );
+            })()}
+
+            {activeWorkout && (
+              <button 
+                onClick={() => {
+                  handleAddExerciseToActive(selectedExerciseForDetails);
+                  setSelectedExerciseForDetails(null);
+                }}
+                className="w-full py-2 bg-accent-blue hover:bg-accent-blue/80 text-white font-orbitron font-bold text-xs uppercase tracking-widest rounded-xl transition-all"
+              >
+                ADD TO ACTIVE WORKOUT
+              </button>
+            )}
           </div>
         </div>
       )}

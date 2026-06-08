@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,18 +19,33 @@ class ExerciseListPage extends ConsumerStatefulWidget {
 class _ExerciseListPageState extends ConsumerState<ExerciseListPage> {
   String _searchQuery = '';
   String _selectedMuscle = 'ALL';
+  String _selectedEquipment = 'ALL';
 
   final List<String> _muscleGroups = [
     'ALL',
     'Chest',
     'Back',
-    'Quads',
-    'Hamstrings',
     'Shoulders',
     'Biceps',
     'Triceps',
     'Core',
-    'Calves'
+    'Quads',
+    'Hamstrings',
+    'Calves',
+    'Waist',
+    'Cardio'
+  ];
+
+  final List<String> _equipments = [
+    'ALL',
+    'Body Weight',
+    'Barbell',
+    'Dumbbell',
+    'Cable',
+    'Band',
+    'Kettlebell',
+    'Machine',
+    'Plate'
   ];
 
   void _showAddCustomExerciseDialog() {
@@ -239,6 +255,43 @@ class _ExerciseListPageState extends ConsumerState<ExerciseListPage> {
             ),
           ),
 
+          // Equipment filters list
+          SizedBox(
+            height: 48,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: _equipments.length,
+              itemBuilder: (context, index) {
+                final equip = _equipments[index];
+                final isSel = _selectedEquipment == equip;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  child: ChoiceChip(
+                    label: Text(
+                      equip.toUpperCase(),
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isSel ? Colors.white : Colors.white54,
+                      ),
+                    ),
+                    selected: isSel,
+                    selectedColor: Colors.orange,
+                    backgroundColor: Colors.white.withOpacity(0.05),
+                    onSelected: (val) {
+                      if (val) {
+                        setState(() => _selectedEquipment = equip);
+                      }
+                    },
+                    showCheckmark: false,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                );
+              },
+            ),
+          ),
+
           // Exercises List
           Expanded(
             child: exercisesAsync.when(
@@ -249,10 +302,20 @@ class _ExerciseListPageState extends ConsumerState<ExerciseListPage> {
               data: (list) {
                 final filtered = list.where((item) {
                   final name = (item['name'] ?? '').toString().toLowerCase();
-                  final target = (item['target_muscle'] ?? '').toString();
+                  final target = (item['target_muscle'] ?? '').toString().toLowerCase();
+                  final bodyPart = (item['body_part'] ?? '').toString().toLowerCase();
+                  final equipment = (item['equipment'] ?? '').toString().toLowerCase();
+
                   final matchesSearch = name.contains(_searchQuery);
-                  final matchesMuscle = _selectedMuscle == 'ALL' || target.toUpperCase() == _selectedMuscle.toUpperCase();
-                  return matchesSearch && matchesMuscle;
+
+                  final matchesMuscle = _selectedMuscle == 'ALL' ||
+                      target == _selectedMuscle.toLowerCase() ||
+                      bodyPart == _selectedMuscle.toLowerCase();
+
+                  final matchesEquip = _selectedEquipment == 'ALL' ||
+                      equipment == _selectedEquipment.toLowerCase();
+
+                  return matchesSearch && matchesMuscle && matchesEquip;
                 }).toList();
 
                 if (filtered.isEmpty) {
@@ -278,9 +341,13 @@ class _ExerciseListPageState extends ConsumerState<ExerciseListPage> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: HunterCard(
                         glowColor: isCustom ? AppTheme.neonPurple : AppTheme.primaryBlue,
-                        onTap: widget.isSelectionMode
-                            ? () => Navigator.pop(context, item)
-                            : null,
+                        onTap: () {
+                          if (widget.isSelectionMode) {
+                            Navigator.pop(context, item);
+                          } else {
+                            _showExerciseDetails(item);
+                          }
+                        },
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -332,6 +399,237 @@ class _ExerciseListPageState extends ConsumerState<ExerciseListPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showExerciseDetails(Map<String, dynamic> item) {
+    final name = (item['name'] ?? 'Unknown').toString().toUpperCase();
+    final target = (item['target_muscle'] ?? 'General').toString().toUpperCase();
+    final bodyPart = (item['body_part'] ?? '').toString().toUpperCase();
+    final equipment = (item['equipment'] ?? '').toString().toUpperCase();
+    final gifUrl = (item['gif_url'] ?? '').toString();
+    final desc = (item['description'] ?? '').toString();
+
+    List<String> instructions = [];
+    if (item['instructions'] is List) {
+      instructions = List<String>.from(item['instructions']);
+    } else if (item['instructions'] is String && item['instructions'].toString().isNotEmpty) {
+      try {
+        final parsed = jsonDecode(item['instructions']);
+        if (parsed is List) {
+          instructions = List<String>.from(parsed);
+        } else {
+          instructions = [item['instructions']];
+        }
+      } catch (_) {
+        instructions = [item['instructions']];
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: const BoxDecoration(
+            color: AppTheme.deepDark,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(
+              top: BorderSide(color: AppTheme.primaryBlue, width: 2),
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            if (target.isNotEmpty)
+                              _buildBadge(target, AppTheme.primaryBlue),
+                            if (bodyPart.isNotEmpty && bodyPart != target)
+                              _buildBadge(bodyPart, AppTheme.neonPurple),
+                            if (equipment.isNotEmpty)
+                              _buildBadge(equipment, Colors.orange),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (gifUrl.isNotEmpty)
+                        Center(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              color: Colors.white.withOpacity(0.02),
+                              width: double.infinity,
+                              height: 240,
+                              child: Image.network(
+                                gifUrl,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.image_not_supported, color: Colors.white24, size: 48),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'NO DEMO AVAILABLE',
+                                        style: GoogleFonts.spaceGrotesk(fontSize: 12, color: Colors.white24),
+                                      ),
+                                    ],
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const Center(child: CircularProgressIndicator());
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+                      if (desc.isNotEmpty && desc != 'No description provided.') ...[
+                        Text(
+                          'DESCRIPTION',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white54,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          desc,
+                          style: GoogleFonts.outfit(fontSize: 14, color: Colors.white70, height: 1.4),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                      if (instructions.isNotEmpty) ...[
+                        Text(
+                          'INSTRUCTIONS',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white54,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ...instructions.asMap().entries.map((entry) {
+                          final idx = entry.key + 1;
+                          final step = entry.value;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryBlue.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.3)),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '$idx',
+                                    style: GoogleFonts.spaceGrotesk(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primaryBlue,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    step,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 14,
+                                      color: Colors.white.withOpacity(0.85),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.spaceGrotesk(
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          color: color,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
