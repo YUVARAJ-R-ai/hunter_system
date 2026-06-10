@@ -80,6 +80,11 @@ class ActiveWorkoutNotifier extends StateNotifier<ActiveWorkoutState> {
     );
   }
 
+  void renameWorkout(String name) {
+    if (!state.isActive) return;
+    state = state.copyWith(name: name);
+  }
+
   void addExercise(Map<String, dynamic> exercise) {
     if (!state.isActive) return;
     final newExercise = ActiveWorkoutExercise(
