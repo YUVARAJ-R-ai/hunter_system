@@ -213,9 +213,51 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
     }
   }
 
+  Map<String, String> _getPrevSessionData(List<Map<String, dynamic>> logs, String exerciseId, int setIndex) {
+    for (var log in logs) {
+      final logSets = log['sets'] as List<dynamic>? ?? [];
+      final matchingSets = logSets.where((s) => s['exercise_id'] == exerciseId).toList();
+      if (matchingSets.isNotEmpty) {
+        matchingSets.sort((a, b) {
+          final int aNum = (a['set_number'] as num?)?.toInt() ?? 0;
+          final int bNum = (b['set_number'] as num?)?.toInt() ?? 0;
+          return aNum.compareTo(bNum);
+        });
+
+        if (setIndex < matchingSets.length) {
+          final prevSet = matchingSets[setIndex];
+          final double? w = (prevSet['weight'] as num?)?.toDouble();
+          final prevWeight = w != null ? (w % 1 == 0 ? w.toInt().toString() : w.toString()) : '-';
+          final prevReps = prevSet['reps']?.toString() ?? '-';
+          return {'weight': prevWeight, 'reps': prevReps};
+        }
+        break;
+      }
+    }
+    return {'weight': '-', 'reps': '-'};
+  }
+
   @override
   Widget build(BuildContext context) {
     final workoutState = ref.watch(activeWorkoutProvider);
+    final logsAsync = ref.watch(workoutLogsProvider);
+    final logs = logsAsync.value ?? [];
+
+    // Calculate dynamic stats
+    double totalVolume = 0;
+    int completedSets = 0;
+    int totalSets = 0;
+    for (var ex in workoutState.exercises) {
+      for (var set in ex.sets) {
+        totalSets++;
+        if (set.isCompleted) {
+          completedSets++;
+          totalVolume += set.weight * set.reps;
+        }
+      }
+    }
+
+    final volumeStr = totalVolume % 1 == 0 ? totalVolume.toInt().toString() : totalVolume.toStringAsFixed(1);
 
     return Scaffold(
       backgroundColor: AppTheme.deepDark,
@@ -225,11 +267,39 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
           children: [
             Text(
               workoutState.name.toUpperCase(),
-              style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, fontSize: 16),
+              style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, fontSize: 15),
             ),
-            Text(
-              'Duration: ${_formatDuration(_elapsed)}',
-              style: GoogleFonts.outfit(fontSize: 12, color: AppTheme.primaryBlue, fontWeight: FontWeight.bold),
+            const SizedBox(height: 3),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  Text(
+                    'TIME: ${_formatDuration(_elapsed)}',
+                    style: GoogleFonts.outfit(fontSize: 10.5, color: AppTheme.primaryBlue, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '|',
+                    style: GoogleFonts.outfit(fontSize: 10.5, color: Colors.white24),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'VOLUME: $volumeStr KG',
+                    style: GoogleFonts.outfit(fontSize: 10.5, color: AppTheme.sRankGreen, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '|',
+                    style: GoogleFonts.outfit(fontSize: 10.5, color: Colors.white24),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'SETS: $completedSets/$totalSets',
+                    style: GoogleFonts.outfit(fontSize: 10.5, color: Colors.amber, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -292,7 +362,7 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
                     }
 
                     final ex = workoutState.exercises[index];
-                    return _buildExerciseCard(ex, index);
+                    return _buildExerciseCard(ex, index, logs);
                   },
                 ),
               ),
@@ -312,7 +382,7 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
     );
   }
 
-  Widget _buildExerciseCard(ActiveWorkoutExercise ex, int exerciseIndex) {
+  Widget _buildExerciseCard(ActiveWorkoutExercise ex, int exerciseIndex, List<Map<String, dynamic>> logs) {
     final name = ex.exercise['name'] ?? 'Exercise';
     final target = ex.exercise['target_muscle'] ?? 'Muscle';
 
@@ -407,6 +477,12 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
               itemCount: ex.sets.length,
               itemBuilder: (context, setIndex) {
                 final set = ex.sets[setIndex];
+                final isCompleted = set.isCompleted;
+                final exerciseId = ex.exercise['id'] ?? '';
+                final prevData = _getPrevSessionData(logs, exerciseId, setIndex);
+                final prevWeightStr = prevData['weight'] ?? '-';
+                final prevRepsStr = prevData['reps'] ?? '-';
+
                 return Dismissible(
                   key: UniqueKey(),
                   direction: DismissDirection.endToStart,
@@ -419,167 +495,175 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
                   onDismissed: (dir) {
                     ref.read(activeWorkoutProvider.notifier).removeSet(exerciseIndex, setIndex);
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        // Set number & warmup flag
-                        Expanded(
-                          flex: 2,
-                          child: Row(
-                            children: [
-                              GestureDetector(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: isCompleted ? 0.45 : 1.0,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          // Set number & warmup flag
+                          Expanded(
+                            flex: 2,
+                            child: Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    ref.read(activeWorkoutProvider.notifier).updateSet(
+                                          exerciseIndex,
+                                          setIndex,
+                                          isWarmup: !set.isWarmup,
+                                        );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: set.isWarmup ? AppTheme.neonPurple.withOpacity(0.1) : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: set.isWarmup ? AppTheme.neonPurple : Colors.transparent,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      set.isWarmup ? 'W' : '${setIndex + 1}',
+                                      style: GoogleFonts.spaceGrotesk(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: set.isWarmup ? AppTheme.neonPurple : Colors.white70,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Weight input
+                          Expanded(
+                            flex: 3,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: SizedBox(
+                                height: 32,
+                                child: TextField(
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  decoration: InputDecoration(
+                                    hintText: prevWeightStr,
+                                    hintStyle: GoogleFonts.outfit(color: Colors.white24, fontSize: 13),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                                  ),
+                                  style: GoogleFonts.outfit(fontSize: 13, color: Colors.white),
+                                  onChanged: (val) {
+                                    final d = double.tryParse(val) ?? 0.0;
+                                    ref.read(activeWorkoutProvider.notifier).updateSet(exerciseIndex, setIndex, weight: d);
+                                  },
+                                  controller: TextEditingController(
+                                    text: set.weight == 0 ? '' : (set.weight % 1 == 0 ? set.weight.toInt().toString() : set.weight.toString()),
+                                  )..selection = TextSelection.fromPosition(
+                                      TextPosition(offset: set.weight == 0 ? 0 : (set.weight % 1 == 0 ? set.weight.toInt().toString() : set.weight.toString()).length),
+                                    ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Reps input
+                          Expanded(
+                            flex: 3,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: SizedBox(
+                                height: 32,
+                                child: TextField(
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    hintText: prevRepsStr,
+                                    hintStyle: GoogleFonts.outfit(color: Colors.white24, fontSize: 13),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                                  ),
+                                  style: GoogleFonts.outfit(fontSize: 13, color: Colors.white),
+                                  onChanged: (val) {
+                                    final r = int.tryParse(val) ?? 0;
+                                    ref.read(activeWorkoutProvider.notifier).updateSet(exerciseIndex, setIndex, reps: r);
+                                  },
+                                  controller: TextEditingController(
+                                    text: set.reps == 0 ? '' : set.reps.toString(),
+                                  )..selection = TextSelection.fromPosition(
+                                      TextPosition(offset: set.reps == 0 ? 0 : set.reps.toString().length),
+                                    ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // RPE input
+                          Expanded(
+                            flex: 2,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: SizedBox(
+                                height: 32,
+                                child: TextField(
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    hintText: '-',
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                                  ),
+                                  style: GoogleFonts.outfit(fontSize: 13, color: Colors.white),
+                                  onChanged: (val) {
+                                    final r = int.tryParse(val);
+                                    ref.read(activeWorkoutProvider.notifier).updateSet(exerciseIndex, setIndex, rpe: r);
+                                  },
+                                  controller: TextEditingController(
+                                    text: set.rpe == null ? '' : set.rpe.toString(),
+                                  )..selection = TextSelection.fromPosition(
+                                      TextPosition(offset: set.rpe == null ? 0 : set.rpe.toString().length),
+                                    ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Completed check
+                          Expanded(
+                            flex: 2,
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: GestureDetector(
                                 onTap: () {
+                                  final newVal = !set.isCompleted;
                                   ref.read(activeWorkoutProvider.notifier).updateSet(
                                         exerciseIndex,
                                         setIndex,
-                                        isWarmup: !set.isWarmup,
+                                        isCompleted: newVal,
                                       );
+                                  
+                                  if (newVal) {
+                                    // Trigger 90s rest timer on completing a set
+                                    _startRestTimer(90);
+                                  }
                                 },
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 22,
+                                  height: 22,
                                   decoration: BoxDecoration(
-                                    color: set.isWarmup ? AppTheme.neonPurple.withOpacity(0.1) : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(4),
+                                    color: set.isCompleted ? AppTheme.sRankGreen : Colors.white.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                      color: set.isWarmup ? AppTheme.neonPurple : Colors.transparent,
+                                      color: set.isCompleted ? AppTheme.sRankGreen : Colors.white12,
+                                      width: 1.5,
                                     ),
                                   ),
-                                  child: Text(
-                                    set.isWarmup ? 'W' : '${setIndex + 1}',
-                                    style: GoogleFonts.spaceGrotesk(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: set.isWarmup ? AppTheme.neonPurple : Colors.white70,
-                                    ),
-                                  ),
+                                  child: set.isCompleted
+                                      ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                      : null,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Weight input
-                        Expanded(
-                          flex: 3,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: SizedBox(
-                              height: 32,
-                              child: TextField(
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: const InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                                ),
-                                style: GoogleFonts.outfit(fontSize: 13, color: Colors.white),
-                                onChanged: (val) {
-                                  final d = double.tryParse(val) ?? 0.0;
-                                  ref.read(activeWorkoutProvider.notifier).updateSet(exerciseIndex, setIndex, weight: d);
-                                },
-                                controller: TextEditingController(
-                                  text: set.weight == 0 ? '' : set.weight.toString(),
-                                )..selection = TextSelection.fromPosition(
-                                    TextPosition(offset: set.weight == 0 ? 0 : set.weight.toString().length),
-                                  ),
                               ),
                             ),
                           ),
-                        ),
-
-                        // Reps input
-                        Expanded(
-                          flex: 3,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: SizedBox(
-                              height: 32,
-                              child: TextField(
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                                ),
-                                style: GoogleFonts.outfit(fontSize: 13, color: Colors.white),
-                                onChanged: (val) {
-                                  final r = int.tryParse(val) ?? 0;
-                                  ref.read(activeWorkoutProvider.notifier).updateSet(exerciseIndex, setIndex, reps: r);
-                                },
-                                controller: TextEditingController(
-                                  text: set.reps == 0 ? '' : set.reps.toString(),
-                                )..selection = TextSelection.fromPosition(
-                                    TextPosition(offset: set.reps == 0 ? 0 : set.reps.toString().length),
-                                  ),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // RPE input
-                        Expanded(
-                          flex: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: SizedBox(
-                              height: 32,
-                              child: TextField(
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  hintText: '-',
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                                ),
-                                style: GoogleFonts.outfit(fontSize: 13, color: Colors.white),
-                                onChanged: (val) {
-                                  final r = int.tryParse(val);
-                                  ref.read(activeWorkoutProvider.notifier).updateSet(exerciseIndex, setIndex, rpe: r);
-                                },
-                                controller: TextEditingController(
-                                  text: set.rpe == null ? '' : set.rpe.toString(),
-                                )..selection = TextSelection.fromPosition(
-                                    TextPosition(offset: set.rpe == null ? 0 : set.rpe.toString().length),
-                                  ),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Completed check
-                        Expanded(
-                          flex: 2,
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: GestureDetector(
-                              onTap: () {
-                                final newVal = !set.isCompleted;
-                                ref.read(activeWorkoutProvider.notifier).updateSet(
-                                      exerciseIndex,
-                                      setIndex,
-                                      isCompleted: newVal,
-                                    );
-                                
-                                if (newVal) {
-                                  // Trigger 90s rest timer on completing a set
-                                  _startRestTimer(90);
-                                }
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                width: 22,
-                                height: 22,
-                                decoration: BoxDecoration(
-                                  color: set.isCompleted ? AppTheme.sRankGreen : Colors.white.withOpacity(0.05),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: set.isCompleted ? AppTheme.sRankGreen : Colors.white12,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: set.isCompleted
-                                    ? const Icon(Icons.check, size: 14, color: Colors.white)
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 );
