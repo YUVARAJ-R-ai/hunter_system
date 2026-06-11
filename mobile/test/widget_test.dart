@@ -30,4 +30,21 @@ void main() {
       expect(json['is_completed'], isTrue);
     });
   });
+
+  group('ActiveWorkoutNotifier Tests', () {
+    test('should rename active workout correctly', () {
+      final notifier = ActiveWorkoutNotifier();
+      // Initially not active, renaming should not affect anything
+      notifier.renameWorkout('Leg Day');
+      expect(notifier.state.name, 'Empty Workout');
+
+      // Start workout
+      notifier.startWorkout(name: 'Chest Day');
+      expect(notifier.state.name, 'Chest Day');
+
+      // Rename active workout
+      notifier.renameWorkout('Leg Day');
+      expect(notifier.state.name, 'Leg Day');
+    });
+  });
 }

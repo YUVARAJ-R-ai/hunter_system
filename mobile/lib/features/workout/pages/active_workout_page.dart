@@ -8,6 +8,7 @@ import 'package:hunter_system_mobile/widgets/hunter_card.dart';
 import 'package:hunter_system_mobile/features/workout/providers/workout_provider.dart';
 import 'package:hunter_system_mobile/features/workout/pages/exercise_list_page.dart';
 import 'package:hunter_system_mobile/providers/hunter_provider.dart';
+import 'package:hunter_system_mobile/services/notification_service.dart';
 
 class ActiveWorkoutPage extends ConsumerStatefulWidget {
   const ActiveWorkoutPage({super.key});
@@ -26,9 +27,14 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
   bool _isRestActive = false;
   int _totalRestSeconds = 90; // Default 90s
 
+  // Workout Naming State
+  late TextEditingController _nameController;
+  bool _isEditingName = false;
+
   @override
   void initState() {
     super.initState();
+    _nameController = TextEditingController();
     _startDurationTimer();
   }
 
@@ -36,6 +42,7 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
   void dispose() {
     _timer?.cancel();
     _restTimer?.cancel();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -79,6 +86,11 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
             backgroundColor: AppTheme.primaryBlue,
             duration: Duration(seconds: 3),
           ),
+        );
+        // Local Notification
+        NotificationService.showInstantNotification(
+          title: 'REST TIME OVER',
+          body: 'Arise for the next set!',
         );
       } else {
         setState(() {
@@ -265,9 +277,74 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              workoutState.name.toUpperCase(),
-              style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, fontSize: 15),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isEditingName = true;
+                  _nameController.text = workoutState.name;
+                });
+              },
+              child: _isEditingName
+                  ? SizedBox(
+                      width: 200,
+                      height: 30,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _nameController,
+                              autofocus: true,
+                              style: GoogleFonts.spaceGrotesk(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 15,
+                                color: Colors.white,
+                              ),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              onSubmitted: (val) {
+                                if (val.trim().isNotEmpty) {
+                                  ref.read(activeWorkoutProvider.notifier).renameWorkout(val.trim());
+                                }
+                                setState(() {
+                                  _isEditingName = false;
+                                });
+                              },
+                            ),
+                          ),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.check, size: 16, color: AppTheme.sRankGreen),
+                            onPressed: () {
+                              final val = _nameController.text;
+                              if (val.trim().isNotEmpty) {
+                                ref.read(activeWorkoutProvider.notifier).renameWorkout(val.trim());
+                              }
+                              setState(() {
+                                _isEditingName = false;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          workoutState.name.toUpperCase(),
+                          style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, fontSize: 15),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.edit, size: 12, color: Colors.white54),
+                      ],
+                    ),
             ),
             const SizedBox(height: 3),
             SingleChildScrollView(
@@ -692,6 +769,133 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
     );
   }
 
+  void _showRestDurationPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'SELECT REST DURATION',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              const Divider(color: Colors.white12),
+              ListTile(
+                title: Center(
+                  child: Text('30 SECONDS', style: GoogleFonts.outfit(color: Colors.white)),
+                ),
+                onTap: () {
+                  _startRestTimer(30);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: Center(
+                  child: Text('60 SECONDS', style: GoogleFonts.outfit(color: Colors.white)),
+                ),
+                onTap: () {
+                  _startRestTimer(60);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: Center(
+                  child: Text('90 SECONDS', style: GoogleFonts.outfit(color: Colors.white)),
+                ),
+                onTap: () {
+                  _startRestTimer(90);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: Center(
+                  child: Text('2 MINUTES', style: GoogleFonts.outfit(color: Colors.white)),
+                ),
+                onTap: () {
+                  _startRestTimer(120);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: Center(
+                  child: Text('CUSTOM...', style: GoogleFonts.outfit(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold)),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  _showCustomDurationDialog();
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showCustomDurationDialog() async {
+    final controller = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardDark,
+        title: Text(
+          'CUSTOM REST DURATION',
+          style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'Duration in seconds',
+            hintStyle: GoogleFonts.outfit(color: Colors.white24),
+            enabledBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.white30),
+            ),
+            focusedBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: AppTheme.primaryBlue),
+            ),
+          ),
+          style: GoogleFonts.outfit(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('CANCEL', style: GoogleFonts.spaceGrotesk(color: Colors.white30)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryBlue,
+            ),
+            onPressed: () {
+              final seconds = int.tryParse(controller.text);
+              if (seconds != null && seconds > 0) {
+                _startRestTimer(seconds);
+              }
+              Navigator.pop(context);
+            },
+            child: Text('START', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRestTimerOverlay() {
     final double progress = _totalRestSeconds > 0 ? _restRemainingSeconds / _totalRestSeconds : 0.0;
 
@@ -711,55 +915,71 @@ class _ActiveWorkoutPageState extends ConsumerState<ActiveWorkoutPage> {
       ),
       child: Row(
         children: [
-          // Circular countdown indicator
-          SizedBox(
-            width: 38,
-            height: 38,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 3,
-                  backgroundColor: Colors.white12,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
-                ),
-                Center(
-                  child: Icon(
-                    LucideIcons.hourglass,
-                    size: 14,
-                    color: AppTheme.primaryBlue.withOpacity(0.8),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 14),
-
-          // Rest remaining text
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'REST TIMER',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 8,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                    color: Colors.white54,
+            child: GestureDetector(
+              onTap: _showRestDurationPicker,
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                children: [
+                  // Circular countdown indicator
+                  SizedBox(
+                    width: 38,
+                    height: 38,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 3,
+                          backgroundColor: Colors.white12,
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+                        ),
+                        Center(
+                          child: Icon(
+                            LucideIcons.hourglass,
+                            size: 14,
+                            color: AppTheme.primaryBlue.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Text(
-                  '${_restRemainingSeconds}s',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                  const SizedBox(width: 14),
+
+                  // Rest remaining text
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'REST TIMER',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.5,
+                            color: Colors.white54,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              '${_restRemainingSeconds}s',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(Icons.edit, size: 12, color: Colors.white30),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
