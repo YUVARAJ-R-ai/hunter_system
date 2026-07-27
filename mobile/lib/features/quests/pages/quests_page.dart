@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hunter_system_mobile/core/theme.dart';
-import 'package:hunter_system_mobile/services/supabase_service.dart';
-import 'package:hunter_system_mobile/widgets/hunter_card.dart';
+import 'package:hunter_system_mobile/providers/hunter_provider.dart';
 
-class QuestsPage extends StatefulWidget {
+class QuestsPage extends ConsumerStatefulWidget {
   final List<Map<String, dynamic>> quests;
-  final VoidCallback onRefresh;
 
-  const QuestsPage({super.key, required this.quests, required this.onRefresh});
+  const QuestsPage({super.key, required this.quests});
 
   @override
-  State<QuestsPage> createState() => _QuestsPageState();
+  ConsumerState<QuestsPage> createState() => _QuestsPageState();
 }
 
-class _QuestsPageState extends State<QuestsPage> with SingleTickerProviderStateMixin {
+class _QuestsPageState extends ConsumerState<QuestsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _filterType = 'ALL';
 
@@ -56,55 +55,16 @@ class _QuestsPageState extends State<QuestsPage> with SingleTickerProviderStateM
 
   Future<void> _completeQuest(String id) async {
     try {
-      final user = SupabaseService.client.auth.currentUser;
-      if (user == null) return;
-
-      // Mark quest completed
-      await SupabaseService.client
-          .from('quests')
-          .update({'completed': true})
-          .eq('id', id)
-          .eq('user_id', user.id);
-
-      // Get quest for XP reward
-      final quest = widget.quests.firstWhere((q) => q['id'] == id, orElse: () => {});
-      final xpReward = (quest['xp_reward'] as num?)?.toInt() ?? 0;
-      final goldReward = (quest['gold_reward'] as num?)?.toInt() ?? 0;
-
-      if (xpReward > 0 || goldReward > 0) {
-        // Update user XP and gold
-        final profile = await SupabaseService.client
-            .from('users')
-            .select('xp, gold, level')
-            .eq('id', user.id)
-            .single();
-
-        int newXp = ((profile['xp'] as num?)?.toInt() ?? 0) + xpReward;
-        int newGold = ((profile['gold'] as num?)?.toInt() ?? 0) + goldReward;
-        int level = (profile['level'] as num?)?.toInt() ?? 1;
-        int xpNeeded = level * 200;
-
-        while (newXp >= xpNeeded) {
-          newXp -= xpNeeded;
-          level++;
-          xpNeeded = level * 200;
-        }
-
-        await SupabaseService.client
-            .from('users')
-            .update({'xp': newXp, 'gold': newGold, 'level': level})
-            .eq('id', user.id);
-      }
-
-      widget.onRefresh();
-      if (mounted) {
+      final reward =
+          await ref.read(hunterDataProvider.notifier).completeQuest(id);
+      if (mounted && ((reward['xp'] ?? 0) > 0 || (reward['gold'] ?? 0) > 0)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 const Icon(LucideIcons.checkCircle, color: AppTheme.sRankGreen, size: 18),
                 const SizedBox(width: 12),
-                Text('Quest Complete! +${xpReward}XP +${goldReward}G'),
+                Text('Quest Complete! +${reward['xp']}XP +${reward['gold']}G'),
               ],
             ),
             backgroundColor: AppTheme.cardDark,
@@ -112,25 +72,18 @@ class _QuestsPageState extends State<QuestsPage> with SingleTickerProviderStateM
         );
       }
     } catch (e) {
-      debugPrint('Error completing quest: $e');
+      _showError('Could not complete quest', e);
     }
   }
 
-  Future<void> _failQuest(String id) async {
-    try {
-      final user = SupabaseService.client.auth.currentUser;
-      if (user == null) return;
-
-      await SupabaseService.client
-          .from('quests')
-          .update({'failed': true})
-          .eq('id', id)
-          .eq('user_id', user.id);
-
-      widget.onRefresh();
-    } catch (e) {
-      debugPrint('Error failing quest: $e');
-    }
+  void _showError(String message, Object error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$message: $error'),
+        backgroundColor: AppTheme.dangerRed,
+      ),
+    );
   }
 
   Future<void> _deleteQuest(String id) async {
@@ -155,26 +108,65 @@ class _QuestsPageState extends State<QuestsPage> with SingleTickerProviderStateM
     if (confirm != true) return;
 
     try {
-      final user = SupabaseService.client.auth.currentUser;
-      if (user == null) return;
-
-      await SupabaseService.client
-          .from('quests')
-          .delete()
-          .eq('id', id)
-          .eq('user_id', user.id);
-
-      widget.onRefresh();
+      await ref.read(hunterDataProvider.notifier).deleteQuest(id);
     } catch (e) {
-      debugPrint('Error deleting quest: $e');
+      _showError('Could not delete quest', e);
     }
   }
 
-  void _showCreateQuestDialog() {
-    final titleController = TextEditingController();
-    String selectedType = 'DAILY';
-    String selectedDifficulty = 'E';
-    String selectedCategory = 'WORK';
+  Widget _pickerChip({
+    required String label,
+    required bool isSelected,
+    required Color color,
+    required VoidCallback onTap,
+    double fontSize = 11,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: isSelected ? color : Colors.white10),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: fontSize,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
+            color: isSelected ? color : Colors.white38,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Text(
+        text,
+        style: GoogleFonts.spaceGrotesk(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 2,
+          color: Colors.white30,
+        ),
+      );
+
+  /// Unified create/edit sheet. Pass [existing] to edit a quest, or null to
+  /// create a new one. Tapping a quest in the list opens this in edit mode.
+  void _showQuestSheet({Map<String, dynamic>? existing}) {
+    final isEditing = existing != null;
+    final titleController =
+        TextEditingController(text: (existing?['title'] ?? '').toString());
+    String selectedType = (existing?['type'] ?? 'DAILY').toString();
+    String selectedDifficulty = (existing?['difficulty'] ?? 'E').toString();
+    String selectedCategory = (existing?['category'] ?? 'WORK').toString();
+    bool isImportant = existing?['is_important'] == true;
+
+    final isCompleted = existing?['completed'] == true;
+    final isFailed = existing?['failed'] == true;
 
     showModalBottomSheet(
       context: context,
@@ -205,14 +197,28 @@ class _QuestsPageState extends State<QuestsPage> with SingleTickerProviderStateM
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text(
-                    'NEW QUEST',
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
-                      color: AppTheme.primaryBlue,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isEditing ? 'EDIT QUEST' : 'NEW QUEST',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                          color: AppTheme.primaryBlue,
+                        ),
+                      ),
+                      // Important toggle (star)
+                      GestureDetector(
+                        onTap: () => setModalState(() => isImportant = !isImportant),
+                        child: Icon(
+                          LucideIcons.star,
+                          size: 22,
+                          color: isImportant ? AppTheme.goldAccent : Colors.white24,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
 
@@ -228,142 +234,106 @@ class _QuestsPageState extends State<QuestsPage> with SingleTickerProviderStateM
                   const SizedBox(height: 16),
 
                   // Type chips
-                  Text('TYPE', style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 2, color: Colors.white30)),
+                  _sectionLabel('TYPE'),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
+                    runSpacing: 8,
                     children: ['DAILY', 'MAIN', 'SIDE'].map((t) {
-                      final isSelected = selectedType == t;
-                      final color = AppTheme.questTypeColor(t);
-                      return GestureDetector(
+                      return _pickerChip(
+                        label: t,
+                        isSelected: selectedType == t,
+                        color: AppTheme.questTypeColor(t),
                         onTap: () => setModalState(() => selectedType = t),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected ? color.withOpacity(0.2) : Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isSelected ? color : Colors.white10),
-                          ),
-                          child: Text(
-                            t,
-                            style: GoogleFonts.spaceGrotesk(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1,
-                              color: isSelected ? color : Colors.white38,
-                            ),
-                          ),
-                        ),
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
 
                   // Difficulty chips
-                  Text('DIFFICULTY', style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 2, color: Colors.white30)),
+                  _sectionLabel('DIFFICULTY'),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     children: ['E', 'D', 'C', 'B', 'A', 'S'].map((d) {
-                      final isSelected = selectedDifficulty == d;
-                      final color = AppTheme.difficultyColor(d);
-                      return GestureDetector(
+                      return _pickerChip(
+                        label: d,
+                        isSelected: selectedDifficulty == d,
+                        color: AppTheme.difficultyColor(d),
+                        fontSize: 12,
                         onTap: () => setModalState(() => selectedDifficulty = d),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected ? color.withOpacity(0.2) : Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isSelected ? color : Colors.white10),
-                          ),
-                          child: Text(
-                            d,
-                            style: GoogleFonts.spaceGrotesk(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: isSelected ? color : Colors.white38,
-                            ),
-                          ),
-                        ),
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
 
                   // Category chips
-                  Text('CATEGORY', style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 2, color: Colors.white30)),
+                  _sectionLabel('CATEGORY'),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: ['FITNESS', 'STUDY', 'WORK', 'HEALTH', 'SOCIAL', 'CREATIVITY'].map((c) {
-                      final isSelected = selectedCategory == c;
-                      final color = AppTheme.categoryColor(c);
-                      return GestureDetector(
+                      return _pickerChip(
+                        label: c,
+                        isSelected: selectedCategory == c,
+                        color: AppTheme.categoryColor(c),
+                        fontSize: 10,
                         onTap: () => setModalState(() => selectedCategory = c),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected ? color.withOpacity(0.15) : Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isSelected ? color.withOpacity(0.5) : Colors.white10),
-                          ),
-                          child: Text(
-                            c,
-                            style: GoogleFonts.spaceGrotesk(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1,
-                              color: isSelected ? color : Colors.white38,
-                            ),
-                          ),
-                        ),
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 24),
 
-                  // Submit
+                  // Save / Create
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () async {
                         if (titleController.text.trim().isEmpty) return;
-                        final user = SupabaseService.client.auth.currentUser;
-                        if (user == null) return;
 
                         // Calculate rewards based on difficulty
                         final difficultyMultiplier = {'E': 1, 'D': 2, 'C': 3, 'B': 4, 'A': 5, 'S': 8};
                         final mult = difficultyMultiplier[selectedDifficulty] ?? 1;
 
                         try {
-                          await SupabaseService.client.from('quests').insert({
-                            'user_id': user.id,
-                            'title': titleController.text.trim(),
-                            'type': selectedType,
-                            'difficulty': selectedDifficulty,
-                            'category': selectedCategory,
-                            'xp_reward': 50 * mult,
-                            'gold_reward': 25 * mult,
-                            'stat_boost_stat': 'STR',
-                            'stat_boost_amount': mult,
-                            'has_deadline': false,
-                            'completed': false,
-                            'failed': false,
-                            'is_important': false,
-                            'is_my_day': false,
-                          });
-                          widget.onRefresh();
+                          final notifier = ref.read(hunterDataProvider.notifier);
+                          if (isEditing) {
+                            await notifier.updateQuest(existing['id'] as String, {
+                              'title': titleController.text.trim(),
+                              'type': selectedType,
+                              'difficulty': selectedDifficulty,
+                              'category': selectedCategory,
+                              'xp_reward': 50 * mult,
+                              'gold_reward': 25 * mult,
+                              'stat_boost_amount': mult,
+                              'is_important': isImportant,
+                            });
+                          } else {
+                            await notifier.createQuest({
+                              'title': titleController.text.trim(),
+                              'type': selectedType,
+                              'difficulty': selectedDifficulty,
+                              'category': selectedCategory,
+                              'xp_reward': 50 * mult,
+                              'gold_reward': 25 * mult,
+                              'stat_boost_stat': 'STR',
+                              'stat_boost_amount': mult,
+                              'has_deadline': false,
+                              'completed': false,
+                              'failed': false,
+                              'is_important': isImportant,
+                              'is_my_day': false,
+                            });
+                          }
                           if (ctx.mounted) Navigator.pop(ctx);
                         } catch (e) {
-                          debugPrint('Error creating quest: $e');
+                          _showError(
+                              isEditing ? 'Could not save quest' : 'Could not create quest', e);
                         }
                       },
                       child: Text(
-                        'CREATE QUEST',
+                        isEditing ? 'SAVE CHANGES' : 'CREATE QUEST',
                         style: GoogleFonts.spaceGrotesk(
                           fontWeight: FontWeight.w800,
                           letterSpacing: 2,
@@ -371,6 +341,91 @@ class _QuestsPageState extends State<QuestsPage> with SingleTickerProviderStateM
                       ),
                     ),
                   ),
+
+                  // Edit-mode status actions + delete
+                  if (isEditing) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        // Complete / Undo / Reopen depending on status
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: isCompleted || isFailed
+                                  ? AppTheme.primaryBlue
+                                  : AppTheme.sRankGreen,
+                              side: BorderSide(
+                                color: (isCompleted || isFailed
+                                        ? AppTheme.primaryBlue
+                                        : AppTheme.sRankGreen)
+                                    .withOpacity(0.4),
+                              ),
+                            ),
+                            icon: Icon(
+                              isCompleted
+                                  ? LucideIcons.rotateCcw
+                                  : isFailed
+                                      ? LucideIcons.rotateCcw
+                                      : LucideIcons.check,
+                              size: 16,
+                            ),
+                            label: Text(
+                              isCompleted
+                                  ? 'UNDO'
+                                  : isFailed
+                                      ? 'REOPEN'
+                                      : 'COMPLETE',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            onPressed: () async {
+                              final id = existing['id'] as String;
+                              Navigator.pop(ctx);
+                              try {
+                                final notifier =
+                                    ref.read(hunterDataProvider.notifier);
+                                if (isCompleted) {
+                                  await notifier.uncompleteQuest(id);
+                                } else if (isFailed) {
+                                  await notifier.updateQuest(id, {'failed': false});
+                                } else {
+                                  await _completeQuest(id);
+                                }
+                              } catch (e) {
+                                _showError('Could not update quest', e);
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Delete
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.dangerRed,
+                              side: BorderSide(color: AppTheme.dangerRed.withOpacity(0.4)),
+                            ),
+                            icon: const Icon(LucideIcons.trash2, size: 16),
+                            label: Text(
+                              'DELETE',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            onPressed: () async {
+                              Navigator.pop(ctx);
+                              await _deleteQuest(existing['id'] as String);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -401,7 +456,7 @@ class _QuestsPageState extends State<QuestsPage> with SingleTickerProviderStateM
                   ),
                 ),
                 GestureDetector(
-                  onTap: _showCreateQuestDialog,
+                  onTap: () => _showQuestSheet(),
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -566,7 +621,10 @@ class _QuestsPageState extends State<QuestsPage> with SingleTickerProviderStateM
         }
         return false;
       },
-      child: Container(
+      child: GestureDetector(
+        onTap: () => _showQuestSheet(existing: quest),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppTheme.cardDark,
@@ -608,16 +666,26 @@ class _QuestsPageState extends State<QuestsPage> with SingleTickerProviderStateM
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    quest['title'] ?? 'Untitled',
-                    style: GoogleFonts.outfit(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isCompleted || isFailed ? Colors.white38 : Colors.white,
-                      decoration: isCompleted ? TextDecoration.lineThrough : null,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      if (quest['is_important'] == true) ...[
+                        const Icon(LucideIcons.star, size: 12, color: AppTheme.goldAccent),
+                        const SizedBox(width: 4),
+                      ],
+                      Expanded(
+                        child: Text(
+                          quest['title'] ?? 'Untitled',
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isCompleted || isFailed ? Colors.white38 : Colors.white,
+                            decoration: isCompleted ? TextDecoration.lineThrough : null,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -667,6 +735,7 @@ class _QuestsPageState extends State<QuestsPage> with SingleTickerProviderStateM
               const Icon(LucideIcons.xCircle, size: 20, color: AppTheme.dangerRed),
           ],
         ),
+      ),
       ),
     );
   }
