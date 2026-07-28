@@ -111,7 +111,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget _buildContent(HunterData data) {
     final pages = [
       _buildProfileTab(data),
-      QuestsPage(quests: data.quests, onRefresh: _refresh),
+      QuestsPage(quests: data.quests),
       const WorkoutTrackerPage(),
       BossesPage(bosses: data.bosses, onRefresh: _refresh),
       InventoryPage(inventory: data.inventory, onRefresh: _refresh),

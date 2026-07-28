@@ -11,14 +11,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SupabaseService.initialize();
-  await NotificationService.initialize();
-  
+
+  // Supabase must be ready before AuthGate uses its client, but a slow/offline
+  // session recovery must never block the app on the splash screen forever.
+  try {
+    await SupabaseService.initialize()
+        .timeout(const Duration(seconds: 8));
+  } catch (e, st) {
+    debugPrint('Supabase init failed or timed out: $e\n$st');
+  }
+
+  // Render the UI immediately. Notification setup (which synchronously loads the
+  // whole timezone database) runs after the first frame so it never delays paint.
   runApp(
     const ProviderScope(
       child: HunterSystemApp(),
     ),
   );
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      await NotificationService.initialize();
+    } catch (e, st) {
+      debugPrint('Notification init failed: $e\n$st');
+    }
+  });
 }
 
 class HunterSystemApp extends StatelessWidget {
