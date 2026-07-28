@@ -1,4 +1,4 @@
--- Migration 003: Extend Exercises Schema for ExerciseDB Data
+-- Migration 004: Extend Exercises Schema for ExerciseDB Data
 
 -- Add new columns
 ALTER TABLE public.exercises 
